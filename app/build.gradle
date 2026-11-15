@@ -1,0 +1,25 @@
+plugins {
+    id 'com.android.application'
+}
+
+android {
+    namespace 'net.micode.fileexplorer'
+    compileSdk 35
+
+    defaultConfig {
+        applicationId 'net.micode.fileexplorer'
+        minSdk 14
+        targetSdk 14
+        versionCode 1
+        versionName '0.1'
+    }
+
+    compileOptions {
+        sourceCompatibility JavaVersion.VERSION_1_8
+        targetCompatibility JavaVersion.VERSION_1_8
+    }
+}
+
+dependencies {
+    implementation files('libs/android-support-v13.jar')
+}
