@@ -245,11 +245,15 @@ public class FTPServerService extends Service implements Runnable {
     private void setupNotification() {
         // http://developer.android.com/guide/topics/ui/notifiers/notifications.html
 
-        // Instantiate a Notification
+        // Build a notification using APIs available from the app's minimum SDK.
         int icon = R.drawable.notification;
         CharSequence tickerText = getString(R.string.notif_server_starting);
         long when = System.currentTimeMillis();
-        Notification notification = new Notification(icon, tickerText, when);
+        Notification.Builder builder = new Notification.Builder(this)
+                .setSmallIcon(icon)
+                .setTicker(tickerText)
+                .setWhen(when)
+                .setOngoing(true);
 
         // Define Notification's message and Intent
         CharSequence contentTitle = getString(R.string.notif_title);
@@ -263,10 +267,11 @@ public class FTPServerService extends Service implements Runnable {
         Intent notificationIntent = new Intent(this, FileExplorerTabActivity.class);
         notificationIntent.putExtra(GlobalConsts.INTENT_EXTRA_TAB, 2);
         PendingIntent contentIntent = PendingIntent.getActivity(this, 0, notificationIntent, 0);
-        notification.setLatestEventInfo(getApplicationContext(), contentTitle, contentText, contentIntent);
-        notification.flags |= Notification.FLAG_ONGOING_EVENT;
+        builder.setContentTitle(contentTitle)
+                .setContentText(contentText)
+                .setContentIntent(contentIntent);
 
-        startForeground(123453, notification);
+        startForeground(123453, net.micode.fileexplorer.Util.createNotification(builder));
 
         myLog.d("Notication setup done");
     }

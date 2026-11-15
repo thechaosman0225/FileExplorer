@@ -28,6 +28,7 @@ import android.content.pm.ApplicationInfo;
 import android.content.pm.PackageInfo;
 import android.content.pm.PackageManager;
 import android.graphics.drawable.Drawable;
+import android.os.Build;
 import android.os.Environment;
 import android.util.Log;
 import android.view.ActionMode;
@@ -376,16 +377,28 @@ public class Util {
 
     public static void showNotification(Context context, Intent intent, String title, String body, int drawableId) {
         NotificationManager manager = (NotificationManager) context.getSystemService(Context.NOTIFICATION_SERVICE);
-        Notification notification = new Notification(drawableId, body, System.currentTimeMillis());
-        notification.flags = Notification.FLAG_AUTO_CANCEL;
-        notification.defaults = Notification.DEFAULT_SOUND;
+        Notification.Builder builder = new Notification.Builder(context)
+                .setSmallIcon(drawableId)
+                .setTicker(body)
+                .setWhen(System.currentTimeMillis())
+                .setAutoCancel(true)
+                .setDefaults(Notification.DEFAULT_SOUND);
         if (intent == null) {
             // FIXEME: category tab is disabled
             intent = new Intent(context, FileViewActivity.class);
         }
         PendingIntent contentIntent = PendingIntent.getActivity(context, 0, intent, PendingIntent.FLAG_ONE_SHOT);
-        notification.setLatestEventInfo(context, title, body, contentIntent);
-        manager.notify(drawableId, notification);
+        builder.setContentTitle(title)
+                .setContentText(body)
+                .setContentIntent(contentIntent);
+        manager.notify(drawableId, createNotification(builder));
+    }
+
+    static Notification createNotification(Notification.Builder builder) {
+        if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.JELLY_BEAN) {
+            return builder.build();
+        }
+        return builder.getNotification();
     }
 
     public static String formatDateString(Context context, long time) {
