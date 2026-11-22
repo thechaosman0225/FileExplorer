@@ -16,3 +16,4 @@ dependencyResolutionManagement {
 
 rootProject.name = 'FileExplorer'
 include ':app'
+include ':swiftp-core'

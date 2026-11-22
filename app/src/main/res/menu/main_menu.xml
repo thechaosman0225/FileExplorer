@@ -1,0 +1,20 @@
+<?xml version="1.0" encoding="utf-8"?>
+<menu xmlns:android="http://schemas.android.com/apk/res/android">
+    <item
+        android:id="@+id/action_ftp_server"
+        android:title="@string/ftp_server_title" />
+    <item
+        android:id="@+id/action_settings"
+        android:title="@string/menu_setting" />
+    <item
+        android:id="@+id/action_storage_access"
+        android:title="@string/storage_grant_access" />
+    <item
+        android:id="@+id/action_refresh"
+        android:orderInCategory="1000"
+        android:title="@string/operation_refresh" />
+    <item
+        android:id="@+id/action_exit"
+        android:orderInCategory="1001"
+        android:title="@string/menu_exit" />
+</menu>

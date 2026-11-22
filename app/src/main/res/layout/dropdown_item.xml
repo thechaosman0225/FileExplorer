@@ -4,7 +4,7 @@
     android:layout_width="fill_parent"
     android:layout_height="wrap_content"
     android:orientation="vertical"
-    android:background="@drawable/dropdown_item_bg">
+    android:background="?attr/colorSurfaceContainer">
 
     <LinearLayout
         android:id="@+id/list_item"
@@ -12,7 +12,8 @@
         android:layout_height="fill_parent"
         android:gravity="center_vertical"
         android:orientation="horizontal"
-        android:layout_marginLeft="10dip">
+        android:layout_marginLeft="10dip"
+        android:background="?attr/selectableItemBackground">
 
         <ImageView
             android:id="@+id/item_icon"
@@ -21,7 +22,8 @@
             android:scaleType="fitCenter"
             android:gravity="center"
             android:layout_gravity="center_vertical"
-            android:layout_marginRight="5dip" />
+            android:layout_marginRight="5dip"
+            android:tint="?attr/colorOnSurfaceVariant" />
 
         <TextView
             android:id="@+id/path_name"
@@ -29,6 +31,7 @@
             android:layout_height="88px"
             android:singleLine="true"
             android:gravity="center_vertical"
+            android:textColor="?attr/colorOnSurface"
             android:textAppearance="?android:attr/textAppearanceSmall" />
 
     </LinearLayout>

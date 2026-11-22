@@ -48,7 +48,7 @@ public class FileCategoryHelper {
     private static final String LOG_TAG = "FileCategoryHelper";
 
     public enum FileCategory {
-        All, Music, Video, Picture, Theme, Doc, Zip, Apk, Custom, Other, Favorite
+        All, Music, Video, Picture, Theme, Doc, Zip, Apk, Custom, Other, Favorite, Recent
     }
 
     private static String APK_EXT = "apk";
@@ -72,10 +72,11 @@ public class FileCategoryHelper {
         categoryNames.put(FileCategory.Apk, R.string.category_apk);
         categoryNames.put(FileCategory.Other, R.string.category_other);
         categoryNames.put(FileCategory.Favorite, R.string.category_favorite);
+        categoryNames.put(FileCategory.Recent, R.string.category_recent);
     }
 
     public static FileCategory[] sCategories = new FileCategory[] {
-            FileCategory.Music, FileCategory.Video, FileCategory.Picture, FileCategory.Theme,
+            FileCategory.Music, FileCategory.Video, FileCategory.Picture,
             FileCategory.Doc, FileCategory.Zip, FileCategory.Apk, FileCategory.Other
     };
 
@@ -185,6 +186,7 @@ public class FileCategoryHelper {
             case Doc:
             case Zip:
             case Apk:
+            case Recent:
                 uri = Files.getContentUri(volumeName);
                 break;
             case Music:
@@ -224,7 +226,9 @@ public class FileCategoryHelper {
     public Cursor query(FileCategory fc, SortMethod sort) {
         Uri uri = getContentUriByCategory(fc);
         String selection = buildSelectionByCategory(fc);
-        String sortOrder = buildSortOrder(sort);
+        String sortOrder = fc == FileCategory.Recent
+                ? FileColumns.DATE_MODIFIED + " DESC, " + FileColumns._ID + " DESC"
+                : buildSortOrder(sort);
 
         if (uri == null) {
             Log.e(LOG_TAG, "invalid uri, category:" + fc.name());
@@ -257,7 +261,6 @@ public class FileCategoryHelper {
         refreshMediaCategory(FileCategory.Picture, uri);
 
         uri = Files.getContentUri(volumeName);
-        refreshMediaCategory(FileCategory.Theme, uri);
         refreshMediaCategory(FileCategory.Doc, uri);
         refreshMediaCategory(FileCategory.Zip, uri);
         refreshMediaCategory(FileCategory.Apk, uri);
@@ -265,22 +268,36 @@ public class FileCategoryHelper {
 
     private boolean refreshMediaCategory(FileCategory fc, Uri uri) {
         String[] columns = new String[] {
-                "COUNT(*)", "SUM(_size)"
+                FileColumns.SIZE
         };
-        Cursor c = mContext.getContentResolver().query(uri, columns, buildSelectionByCategory(fc), null, null);
+        Cursor c = mContext.getContentResolver().query(uri, columns,
+                buildSelectionByCategory(fc), null, null);
         if (c == null) {
             Log.e(LOG_TAG, "fail to query uri:" + uri);
             return false;
         }
 
-        if (c.moveToNext()) {
-            setCategoryInfo(fc, c.getLong(0), c.getLong(1));
-            Log.v(LOG_TAG, "Retrieved " + fc.name() + " info >>> count:" + c.getLong(0) + " size:" + c.getLong(1));
+        long count = 0;
+        long size = 0;
+        int sizeColumn = c.getColumnIndex(FileColumns.SIZE);
+        if (sizeColumn < 0) {
             c.close();
-            return true;
+            Log.e(LOG_TAG, "size column missing from query for uri:" + uri);
+            return false;
         }
 
-        return false;
+        try (Cursor cursor = c) {
+            while (cursor.moveToNext()) {
+                count++;
+                if (!cursor.isNull(sizeColumn)) {
+                    size += cursor.getLong(sizeColumn);
+                }
+            }
+        }
+
+        setCategoryInfo(fc, count, size);
+        Log.v(LOG_TAG, "Retrieved " + fc.name() + " info >>> count:" + count + " size:" + size);
+        return true;
     }
 
     public static FileCategory getCategoryFromPath(String path) {

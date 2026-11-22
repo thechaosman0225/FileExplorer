@@ -25,11 +25,16 @@ import java.util.TimerTask;
 
 import android.content.Context;
 import android.graphics.Canvas;
+import android.graphics.Paint;
+import android.graphics.Path;
 import android.graphics.Rect;
+import android.graphics.RectF;
 import android.graphics.drawable.Drawable;
 import android.util.AttributeSet;
 import android.util.Log;
 import android.view.View;
+
+import androidx.core.content.ContextCompat;
 
 public class CategoryBar extends View {
     private static final String LOG_TAG = "CategoryBar";
@@ -87,62 +92,54 @@ public class CategoryBar extends View {
 
     @Override
     protected void onDraw(Canvas canvas) {
-        Drawable d = getDrawable(R.drawable.category_bar_empty);
-
         int width = getWidth() - MARGIN * 2;
         int height = getHeight() - MARGIN * 2;
         boolean isHorizontal = (width > height);
+        float trackLeft = isHorizontal ? MARGIN : 0;
+        float trackTop = isHorizontal ? 0 : MARGIN;
+        float trackRight = isHorizontal ? MARGIN + width : getWidth();
+        float trackBottom = isHorizontal ? getHeight() : MARGIN + height;
+        if (trackRight <= trackLeft || trackBottom <= trackTop) {
+            return;
+        }
 
-        Rect bounds = null;
-        if ( isHorizontal )
-            bounds = new Rect(MARGIN, 0, MARGIN + width, d.getIntrinsicHeight());
-        else
-            bounds = new Rect(0, MARGIN, d.getIntrinsicWidth(), MARGIN + height);
+        RectF trackBounds = new RectF(trackLeft, trackTop, trackRight, trackBottom);
+        float cornerRadius = Math.min(trackBounds.width(), trackBounds.height()) / 2;
+        Paint trackPaint = new Paint(Paint.ANTI_ALIAS_FLAG);
+        trackPaint.setColor(ContextCompat.getColor(getContext(), R.color.m3_surface_variant));
+        canvas.drawRoundRect(trackBounds, cornerRadius, cornerRadius, trackPaint);
 
-        int beginning = MARGIN;
-        if ( !isHorizontal ) beginning += height;
-        d.setBounds(bounds);
-        d.draw(canvas);
-        if (mFullValue != 0) {
+        Path trackPath = new Path();
+        trackPath.addRoundRect(trackBounds, cornerRadius, cornerRadius, Path.Direction.CW);
+        int saveCount = canvas.save();
+        canvas.clipPath(trackPath);
+
+        int beginning = isHorizontal ? MARGIN : MARGIN + height;
+        if (mFullValue > 0) {
             for (Category c : categories) {
                 long value = (timer == null ? c.value : c.tmpValue);
-                if ( isHorizontal ) {
+                if (isHorizontal) {
                     int w = (int) (value * width / mFullValue);
                     if (w == 0)
                         continue;
-                    bounds.left = beginning;
-                    bounds.right = beginning + w;
-                    d = getDrawable(c.resImg);
-                    bounds.bottom = bounds.top + d.getIntrinsicHeight();
+                    Drawable d = getDrawable(c.resImg);
+                    Rect bounds = new Rect(beginning, 0, beginning + w, getHeight());
                     d.setBounds(bounds);
                     d.draw(canvas);
                     beginning += w;
-                }
-                else {
+                } else {
                     int h = (int) (value * height / mFullValue);
                     if (h == 0)
                         continue;
-                    bounds.bottom = beginning;
-                    bounds.top = beginning - h;
-                    d = getDrawable(c.resImg);
-                    bounds.right = bounds.left + d.getIntrinsicWidth();
+                    Drawable d = getDrawable(c.resImg);
+                    Rect bounds = new Rect(0, beginning - h, getWidth(), beginning);
                     d.setBounds(bounds);
                     d.draw(canvas);
                     beginning -= h;
                 }
             }
         }
-        if ( isHorizontal ) {
-            bounds.left = 0;
-            bounds.right = bounds.left + getWidth();
-        }
-        else {
-            bounds.top = 0;
-            bounds.bottom = bounds.top + getHeight();
-        }
-        d = getDrawable(R.drawable.category_bar_mask);
-        d.setBounds(bounds);
-        d.draw(canvas);
+        canvas.restoreToCount(saveCount);
     }
 
     private Drawable getDrawable(int id) {

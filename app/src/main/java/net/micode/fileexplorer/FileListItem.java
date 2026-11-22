@@ -19,7 +19,6 @@
 
 package net.micode.fileexplorer;
 
-import android.app.ActionBar;
 import android.app.Activity;
 import android.content.Context;
 import android.view.ActionMode;
@@ -118,10 +117,7 @@ public class FileListItem {
         }
 
         private void scrollToSDcardTab() {
-            ActionBar bar = ((FileExplorerTabActivity) mContext).getActionBar();
-            if (bar.getSelectedNavigationIndex() != Util.SDCARD_TAB_INDEX) {
-                bar.setSelectedNavigationItem(Util.SDCARD_TAB_INDEX);
-            }
+            ((FileExplorerTabActivity) mContext).selectTab(Util.SDCARD_TAB_INDEX);
         }
 
         public ModeCallback(Context context,

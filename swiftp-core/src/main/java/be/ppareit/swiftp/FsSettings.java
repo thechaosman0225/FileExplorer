@@ -1,0 +1,400 @@
+/*
+Copyright 2011-2013 Pieter Pareit
+Copyright 2009 David Revell
+
+This file is part of SwiFTP.
+
+SwiFTP is free software: you can redistribute it and/or modify
+it under the terms of the GNU General Public License as published by
+the Free Software Foundation, either version 3 of the License, or
+(at your option) any later version.
+
+SwiFTP is distributed in the hope that it will be useful,
+but WITHOUT ANY WARRANTY; without even the implied warranty of
+MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+GNU General Public License for more details.
+
+You should have received a copy of the GNU General Public License
+along with SwiFTP.  If not, see <http://www.gnu.org/licenses/>.
+*/
+
+package be.ppareit.swiftp;
+
+import android.content.Context;
+import android.content.Intent;
+import android.content.SharedPreferences;
+import android.content.UriPermission;
+import android.os.Environment;
+import android.preference.PreferenceManager;
+import java.util.HashSet;
+import android.util.Log;
+
+import com.google.gson.Gson;
+import com.google.gson.reflect.TypeToken;
+
+import java.io.File;
+import java.lang.reflect.Type;
+import java.util.ArrayList;
+import java.util.Collections;
+import java.util.List;
+import java.util.Objects;
+import java.util.Set;
+
+import be.ppareit.swiftp.server.FtpUser;
+import be.ppareit.swiftp.utils.AllowedFolders;
+import be.ppareit.swiftp.utils.FileUtil;
+
+public class FsSettings {
+
+    private final static String TAG = FsSettings.class.getSimpleName();
+    private static final SharedPreferences sp = getSharedPreferences();
+
+    public static List<FtpUser> getUsers() {
+        final Context context = App.getAppContext();
+        if (sp.contains("users")) {
+            Gson gson = new Gson();
+            Type listType = new TypeToken<List<FtpUser>>() {
+            }.getType();
+            return gson.fromJson(sp.getString("users", null), listType);
+        } else if (sp.contains("username")) {
+            // on ftp server version < 2.19 we had username/password preference
+            String username = sp.getString("username", context.getString(R.string.username_default));
+            String password = sp.getString("password", context.getString(R.string.password_default));
+            String chroot = sp.getString("chrootDir", "");
+            String uriString = sp.getString("uriString", "");
+            if (username == null || password == null || chroot == null) {
+                username = context.getString(R.string.username_default);
+                password = context.getString(R.string.password_default);
+                chroot = "";
+            }
+            return new ArrayList<>(Collections.singletonList(new FtpUser(username, password, chroot, uriString)));
+        } else {
+            FtpUser defaultUser = new FtpUser(context.getString(R.string.username_default), context.getString(R.string.password_default), "\\", "");
+            return new ArrayList<>(Collections.singletonList(defaultUser));
+        }
+    }
+
+    public static FtpUser getUser(String username) {
+        for (FtpUser user : getUsers()) {
+            if (Objects.equals(user.getUsername(), username))
+                return user;
+        }
+        return null;
+    }
+
+    public static void addUser(FtpUser user) {
+        if (getUser(user.getUsername()) != null) {
+            throw new IllegalArgumentException("User already exists");
+        }
+        Gson gson = new Gson();
+        List<FtpUser> userList = getUsers();
+        userList.add(user);
+        sp.edit().putString("users", gson.toJson(userList)).apply();
+    }
+
+    public static void removeUser(String username, boolean actualDelete) {
+        Gson gson = new Gson();
+        List<FtpUser> users = getUsers();
+        ArrayList<FtpUser> found = new ArrayList<>();
+        for (FtpUser user : users) {
+            if (Objects.equals(user.getUsername(), username)) {
+                found.add(user);
+            }
+        }
+        users.removeAll(found);
+        sp.edit().putString("users", gson.toJson(users)).apply();
+    }
+
+    public static void modifyUser(String username, FtpUser newUser) {
+        removeUser(username, false);
+        addUser(newUser);
+    }
+
+    public static boolean allowAnonymous() {
+        return sp.getBoolean("allow_anonymous", false);
+    }
+
+    public static void setAllowAnonymous(boolean allow) {
+        sp.edit().putBoolean("allow_anonymous", allow).apply();
+    }
+
+    /** The anonymous login has its own chroot, it is not one of the users. */
+    public static String getAnonChroot() {
+        return sp.getString("anonChroot", "/storage/emulated/0" /*backwards compat*/);
+    }
+
+    public static void setAnonChroot(String chroot) {
+        sp.edit().putString("anonChroot", chroot).apply();
+    }
+
+    public static void setDefaultChrootDir(String chroot) {
+        File directory = new File(chroot);
+        if (!directory.isDirectory()) {
+            throw new IllegalArgumentException("FTP root is not an accessible directory: " + chroot);
+        }
+        sp.edit().putString("ftpDefaultChrootDir", directory.getAbsolutePath()).apply();
+    }
+
+    public static File getDefaultChrootDir() {
+        if (Util.useScopedStorage()) {
+            final String chroot = AllowedFolders.index().defaultChroot();
+            if (chroot != null && !chroot.isEmpty()) return new File(chroot);
+            // Nothing granted yet. Fall through, so the UI still shows a sensible path.
+        }
+
+        final String configuredChroot = sp.getString("ftpDefaultChrootDir", null);
+        if (configuredChroot != null) {
+            File configuredDirectory = new File(configuredChroot);
+            if (configuredDirectory.isDirectory()) return configuredDirectory;
+            sp.edit().remove("ftpDefaultChrootDir").apply();
+        }
+
+        File chrootDir;
+        if (Environment.getExternalStorageState().equals(Environment.MEDIA_MOUNTED)) {
+            chrootDir = Environment.getExternalStorageDirectory();
+        } else {
+            chrootDir = new File("/");
+        }
+        if (!chrootDir.isDirectory()) {
+            Log.e(TAG, "getChrootDir: not a directory");
+            // if this happens, we are screwed
+            // we give it the application directory
+            // but this will probably not be what the user wants
+            return App.getAppContext().getFilesDir();
+        }
+        return chrootDir;
+    }
+
+    public static int getPortNumber() {
+        // TODO: port is always an number, so store this accordingly
+        String portString = sp.getString("portNum", "2121");
+        if (portString == null) {
+            portString = "2121";
+        }
+        int port = Integer.valueOf(portString);
+        Log.v(TAG, "Using port: " + port);
+        return port;
+    }
+
+    public static int getPortNumberImplicit() {
+        // TODO: port is always an number, so store this accordingly
+        String portString = sp.getString("portNumImplicit",
+                App.getAppContext().getString(R.string.portnumber_default_implicit));
+        int port = Integer.parseInt(portString);
+        Log.v(TAG, "Using port implicit: " + port);
+        return port;
+    }
+
+    public static String getBatterySaverChoice(String val) {
+        String s = sp.getString("battery_saver", "1");
+        if (val != null) s = val;
+        if (s.equals("0")) return App.getAppContext().getString(R.string.bs_high);
+        if (s.equals("1")) return App.getAppContext().getString(R.string.bs_low);
+        return App.getAppContext().getString(R.string.bs_deep);
+    }
+
+    public static int getAnonMaxConNumber() {
+        String s = sp.getString("anon_max", "1");
+        if (s.isEmpty()) s = "1";
+        int i = Integer.parseInt(s);
+        Log.v(TAG, "Using anon max connections: " + i);
+        return i;
+    }
+
+    public static void setAnonMaxConNumber(int max) {
+        sp.edit().putString("anon_max", String.valueOf(max)).apply();
+    }
+
+    public static boolean shouldTakeFullWakeLock() {
+        return sp.getBoolean("stayAwake", false);
+    }
+
+    /**
+     * @return the SharedPreferences for this application
+     */
+    private static SharedPreferences getSharedPreferences() {
+        final Context context = App.getAppContext();
+        return PreferenceManager.getDefaultSharedPreferences(context);
+    }
+
+    public static String getExternalStorageUri() {
+        return sp.getString("externalStorageUri", null);
+    }
+
+    public static void setExternalStorageUri(String externalStorageUri) {
+        sp.edit().putString("externalStorageUri", externalStorageUri).apply();
+    }
+
+    /*
+     * Returns whether the FTPS implicit port is enabled or not.
+     * */
+    public static boolean isImplicitUsed() {
+        return sp.getBoolean("enableImplicitPort", false);
+    }
+
+    /*
+     * Returns whether the plain port is disabled for FTPS implicit only use.
+     * */
+    public static boolean isImplicitOnly() {
+        return sp.getBoolean("disablePlainPort", false);
+    }
+
+    /*
+     * Returns the FTPS implicit port.
+     * */
+    public static int getImplicitPort() {
+        return Integer.parseInt(getImplicitPortString());
+    }
+
+    /*
+     * Returns the FTPS implicit port.
+     * */
+    public static String getImplicitPortString() {
+        String implicitPortDefault = App.getAppContext().getString(R.string.portnumber_default_implicit);
+        return sp.getString("portNumImplicit", implicitPortDefault);
+    }
+
+    /*
+     * Returns whether the FTPS implicit port is enabled or not.
+     * */
+    public static boolean isFeatDisabled() {
+        return sp.getBoolean("disableFeat", false);
+    }
+
+    /*
+     * Returns whether to require a client certificate.
+     * */
+    public static boolean useClientCert() {
+        return sp.getBoolean("useClientCert", false);
+    }
+
+    /*
+     * Returns the data connection range low port;
+     * */
+    public static int getPortRangeLow() {
+        return parseRangePort(getPortRangeLowString());
+    }
+
+    /*
+     * Returns the data connection range low port as a String;
+     * */
+    public static String getPortRangeLowString() {
+        final String def = App.getAppContext().getString(R.string.portnumber_default_pasv_low);
+        return sp.getString("portRangePasvLow", def);
+    }
+
+    /*
+     * Returns the data connection range high port;
+     * */
+    public static int getPortRangeHigh() {
+        return parseRangePort(getPortRangeHighString());
+    }
+
+    private static int parseRangePort(String value) {
+        // null when preference screen is empty
+        if (value == null) return 0;
+        try {
+            return Integer.parseInt(value.trim());
+        } catch (NumberFormatException e) {
+            return 0;
+        }
+    }
+
+    /*
+     * Returns the data connection range high port as a String;
+     * */
+    public static String getPortRangeHighString() {
+        final String def = App.getAppContext().getString(R.string.portnumber_default_pasv_high);
+        return sp.getString("portRangePasvHigh", def);
+    }
+
+    /*
+     * Returns whether FTPS SSL is enabled or not.
+     * */
+    public static boolean useSSL() {
+        return sp.getBoolean("enableSsl", false);
+    }
+
+    /*
+     * Returns whether SYST is disabled.
+     * */
+    public static boolean isSystDisabled() {
+        return sp.getBoolean("disableSyst", false);
+    }
+
+    /*
+     * Returns whether the banner text is disabled.
+     * */
+    public static boolean isBannerDisabled() {
+        return sp.getBoolean("disableBanner", false);
+    }
+
+    /*
+     * Returns whether user enabled encryption only (FTPS implicit and explicit only).
+     * */
+    public static boolean isEncryptionOnlyEnabled() {
+        return sp.getBoolean("disablePlainNotExplicit", false);
+    }
+
+    /*
+    * Returns the list of all IPs that have connected.
+    * */
+    public static Set<String> getIPList() {
+        return sp.getStringSet("IPList", new HashSet<>());
+    }
+
+    /*
+    * Returns the list of IPs that have been allowed.
+    * */
+    public static Set<String> getAllowList() {
+        return sp.getStringSet("AllowIPs", new HashSet<>());
+    }
+
+    /*
+    * Returns the list of IPs that are denied by failure.
+    * */
+    public static Set<String> getFailList() {
+        return sp.getStringSet("FailIPs", new HashSet<>());
+    }
+
+    /*
+    * Puts reworked set of IPs to the all connected IPs list.
+    * */
+    public static void putIPList(Set<String> newList) {
+        sp.edit().putStringSet("IPList", newList).apply();
+    }
+
+    /*
+    * Puts reworked set of IPs to the denied by failure list.
+    * */
+    public static void putFailList(Set<String> newList) {
+        sp.edit().putStringSet("FailIPs", newList).apply();
+    }
+
+    /*
+    * Returns whether IP list deny until allowed is enabled.
+    * */
+    public static boolean isDenyUntilAllowed() {
+        return sp.getBoolean("denyUntilAllowed", false);
+    }
+
+    /*
+    * Returns whether IP list deny on failure is enabled.
+    * */
+    public static boolean isDenyOnFailedLogins() {
+        return sp.getBoolean("denyOnFailedLogins", false);
+    }
+
+    /*
+     * Returns the FTPS protocols selected by the user.
+     * */
+    public static Set<String> getAllowedProtocols() {
+        return sp.getStringSet("FTPSProtocolList", new HashSet<>());
+    }
+
+    public static boolean isLoggingEnabled() {
+        final SharedPreferences sp = getSharedPreferences();
+        return sp.getBoolean("enable_logging", false);
+    }
+
+}
