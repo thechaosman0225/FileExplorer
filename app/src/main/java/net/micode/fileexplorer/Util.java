@@ -387,7 +387,11 @@ public class Util {
             // FIXEME: category tab is disabled
             intent = new Intent(context, FileViewActivity.class);
         }
-        PendingIntent contentIntent = PendingIntent.getActivity(context, 0, intent, PendingIntent.FLAG_ONE_SHOT);
+        int pendingIntentFlags = PendingIntent.FLAG_ONE_SHOT;
+        if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.M) {
+            pendingIntentFlags |= PendingIntent.FLAG_IMMUTABLE;
+        }
+        PendingIntent contentIntent = PendingIntent.getActivity(context, 0, intent, pendingIntentFlags);
         builder.setContentTitle(title)
                 .setContentText(body)
                 .setContentIntent(contentIntent);
@@ -412,7 +416,8 @@ public class Util {
 
     public static void updateActionModeTitle(ActionMode mode, Context context, int selectedNum) {
         if (mode != null) {
-            mode.setTitle(context.getString(R.string.multi_select_title,selectedNum));
+            mode.setTitle(context.getString(R.string.multi_select_title,
+                    Integer.toString(selectedNum)));
             if(selectedNum == 0){
                 mode.finish();
             }

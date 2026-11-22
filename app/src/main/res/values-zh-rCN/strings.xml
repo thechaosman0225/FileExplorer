@@ -29,6 +29,44 @@
     <string name="cancel">取消</string>
     <string name="no_file">没有文件</string>
     <string name="tab_category">分类浏览</string>
+    <string name="tab_categories">分类</string>
+    <string name="tab_local">本地</string>
+    <string name="ftp_server_title">FTP 服务器</string>
+    <string name="category_recent">最近</string>
+    <string name="up_level">上一级</string>
+    <string name="ftp_credentials_title">FTP 账户</string>
+    <string name="ftp_username">用户名</string>
+    <string name="ftp_password">密码</string>
+    <string name="ftp_password_hint">输入密码以保存或更改密码</string>
+    <string name="ftp_credentials_help">启动服务器前，请设置专用的用户名和密码。</string>
+    <string name="ftp_security_warning">FTP 不会加密凭据或文件，请仅在可信网络中使用。</string>
+    <string name="ftp_shared_folders_title">共享文件夹</string>
+    <string name="ftp_shared_folders_empty">尚未添加文件夹。服务器将使用内部存储。</string>
+    <string name="ftp_add_folder">添加文件夹或 SD 卡</string>
+    <string name="ftp_save_account">保存账户</string>
+    <string name="ftp_start_server">启动服务器</string>
+    <string name="ftp_stop_server">停止服务器</string>
+    <string name="ftp_server_stopped">服务器已停止</string>
+    <string name="ftp_server_running">服务器正在运行</string>
+    <string name="ftp_enter_address">请在其他设备上使用此地址连接：</string>
+    <string name="ftp_credentials_required">启动服务器前，请先保存用户名和密码。</string>
+    <string name="ftp_network_required">启动服务器前，请将此设备连接到 Wi-Fi。</string>
+    <string name="ftp_invalid_credentials">用户名和密码不能包含换行符。</string>
+    <string name="ftp_default_credentials">请勿使用内置的默认账户，请设置其他凭据。</string>
+    <string name="ftp_username_exists">此用户名已被使用。</string>
+    <string name="ftp_account_saved">FTP 账户已保存。</string>
+    <string name="ftp_folder_added">已授予文件夹访问权限。</string>
+    <string name="ftp_folder_failed">无法保留对此文件夹的访问权限。</string>
+    <string name="ftp_server_start_failed">无法启动 FTP 服务器。</string>
+    <string name="ftp_address_unavailable">服务器正在运行，但网络地址不可用。</string>
+    <string name="ftp_notifications_denied">通知已关闭；此页面保持打开时服务器仍可运行。</string>
+    <string name="ftp_permission_help">选择要共享的文件夹。对于 microSD 卡，请选择卡根目录或其中的文件夹。</string>
+    <string name="ftp_server_stop_before_storage">更改共享文件夹前，请先停止服务器。</string>
+    <string name="ftp_folder_picker_unavailable">此设备不提供文件夹选择器。</string>
+    <string name="storage_internal">内部存储</string>
+    <string name="storage_add">添加 SD 卡</string>
+    <string name="storage_removable">SD 卡 · %1$s</string>
+    <string name="storage_access_failed">无法访问此存储位置。请在“本地”页重新授予访问权限。</string>
     <string name="tab_sd">文件管理</string>
     <string name="tab_remote">远程管理</string>
     <string name="sd_folder">SD卡</string>
@@ -73,6 +111,12 @@
     <string name="notif_server_starting">远程管理服务已启动</string>
     <string name="notif_title">远程管理服务正在运行</string>
     <string name="storage_warning">外部存储不可用.</string>
+    <string name="storage_select_title">选择存储位置</string>
+    <string name="storage_access_title">允许管理文件</string>
+    <string name="storage_access_explanation">若要浏览和管理内部存储及可移动存储中的文件，请在 Android 设置中允许 File Explorer 管理所有文件。</string>
+    <string name="storage_access_continue">打开设置</string>
+    <string name="storage_grant_access">授予文件访问权限</string>
+    <string name="storage_access_required">文件访问受限。请从应用菜单授予权限，以浏览存储空间。</string>
     <string name="wifi_state">WiFi状态</string>
     <string name="instruction_pre">启动后可以从电脑端远程管理手机文件</string>
     <string name="instruction">请在“我的电脑”地址栏中输入：</string>
@@ -89,6 +133,7 @@
     <string name="favorite_photo">照片</string>
     <string name="favorite_sdcard">SD卡</string>
     <string name="favorite_root">根目录</string>
+    <string name="favourite_root">根目录</string>
     <string name="favorite_screen_cap">MIUI截屏</string>
     <string name="favorite_ringtone">铃声</string>
     <string name="multi_select_title">已选择 <xliff:g id="number">%1$s</xliff:g> 个</string>
@@ -98,6 +143,7 @@
     <string name="pref_primary_folder">主页文件夹</string>
     <string name="pref_read_root">读取根目录</string>
     <string name="pref_show_real_path">显示真实路径</string>
+    <string name="default_primary_folder">/storage/emulated/0</string>
     <string name="pref_primary_folder_summary">程序启动时显示的文件夹，当前路径为<xliff:g id="string">%1$s</xliff:g></string>
     <string name="pref_show_real_path_summary">在导航栏中显示真实路径</string>
 

@@ -25,20 +25,29 @@
     <uses-permission android:name="android.permission.ACCESS_WIFI_STATE" />
     <uses-permission android:name="android.permission.INTERNET" />
     <uses-permission android:name="android.permission.CHANGE_WIFI_STATE" />
-    <uses-permission android:name="android.permission.WRITE_EXTERNAL_STORAGE" />
-    <uses-permission android:name="android.permission.INSTALL_PACKAGES" />
-    <uses-permission android:name="android.permission.DELETE_PACKAGES" />
+    <uses-permission
+        android:name="android.permission.WRITE_EXTERNAL_STORAGE"
+        android:maxSdkVersion="29" />
+    <uses-permission
+        android:name="android.permission.READ_EXTERNAL_STORAGE"
+        android:maxSdkVersion="29" />
+    <uses-permission android:name="android.permission.MANAGE_EXTERNAL_STORAGE" />
     <uses-permission android:name="android.permission.WAKE_LOCK" />
     <uses-permission android:name="android.permission.ACCESS_NETWORK_STATE" />
+    <uses-permission android:name="android.permission.FOREGROUND_SERVICE" />
+    <uses-permission android:name="android.permission.FOREGROUND_SERVICE_CONNECTED_DEVICE" />
+    <uses-permission android:name="android.permission.POST_NOTIFICATIONS" />
 
     <application
+        android:name=".FileExplorerApplication"
         android:icon="@drawable/icon"
         android:label="@string/app_name"
-        android:theme="@android:style/Theme.Holo.Light"
+        android:theme="@style/Theme.FileExplorer"
         android:uiOptions="splitActionBarWhenNarrow">
         <activity
             android:name=".FileExplorerTabActivity"
-            android:configChanges="screenSize|keyboardHidden"
+            android:exported="true"
+            android:configChanges="orientation|screenSize|keyboardHidden"
             android:screenOrientation="sensor"
             android:uiOptions="splitActionBarWhenNarrow">
             <intent-filter >
@@ -66,7 +75,8 @@
             </intent-filter>
         </activity>
 
-        <activity android:name=".net.micode.fileexplorer.SearchActivity" >
+        <activity android:name=".SearchActivity"
+            android:exported="true">
             <intent-filter >
                 <action android:name="android.intent.action.SEARCH" />
 
@@ -82,14 +92,32 @@
             android:label="@string/menu_setting"
             android:launchMode="singleTop"
             android:name="FileExplorerPreferenceActivity"
-            android:theme="@android:style/Theme.Holo.Light.NoActionBar" >
+            android:theme="@style/Theme.FileExplorer" >
         </activity>
+
+        <activity
+            android:name=".FTPServerActivity"
+            android:exported="false"
+            android:label="@string/ftp_server_title" />
 
         <meta-data
             android:name="android.app.default_searchable"
             android:value=".SearchActivity" />
 
-        <service android:name=".FTPServerService" />
+        <service
+            android:name="be.ppareit.swiftp.FsService"
+            android:exported="false"
+            android:foregroundServiceType="connectedDevice" />
+
+        <provider
+            android:name="androidx.core.content.FileProvider"
+            android:authorities="${applicationId}.fileprovider"
+            android:exported="false"
+            android:grantUriPermissions="true">
+            <meta-data
+                android:name="android.support.FILE_PROVIDER_PATHS"
+                android:resource="@xml/file_paths" />
+        </provider>
     </application>
 
 </manifest>

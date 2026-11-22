@@ -7,105 +7,303 @@
  * it under the terms of the GNU General Public License as published by
  * the Free Software Foundation, either version 3 of the License, or
  * (at your option) any later version.
- *
- * FileExplorer is distributed in the hope that it will be useful,
- * but WITHOUT ANY WARRANTY; without even the implied warranty of
- * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
- * GNU General Public License for more details.
- *
- * You should have received a copy of the GNU General Public License
- * along with SwiFTP.  If not, see <http://www.gnu.org/licenses/>.
  */
 
 package net.micode.fileexplorer;
 
-import android.app.ActionBar;
-import android.app.ActionBar.Tab;
-import android.app.Activity;
 import android.app.Fragment;
+import android.app.FragmentManager;
 import android.app.FragmentTransaction;
+import android.Manifest;
+import android.content.ActivityNotFoundException;
 import android.content.Context;
+import android.content.Intent;
 import android.content.SharedPreferences;
 import android.content.res.Configuration;
+import android.content.pm.PackageManager;
+import android.net.Uri;
+import android.os.Build;
 import android.os.Bundle;
+import android.os.Environment;
+import android.provider.Settings;
 import android.preference.PreferenceManager;
-import android.support.v13.app.FragmentPagerAdapter;
-import android.support.v4.view.ViewPager;
+import android.view.Menu;
+import android.view.MenuItem;
 import android.view.ActionMode;
+import android.widget.Toast;
 
-import java.util.ArrayList;
+import androidx.appcompat.app.AppCompatActivity;
+import androidx.activity.OnBackPressedCallback;
+import androidx.core.app.ActivityCompat;
+import androidx.core.content.ContextCompat;
+import com.google.android.material.appbar.MaterialToolbar;
+import com.google.android.material.dialog.MaterialAlertDialogBuilder;
+import com.google.android.material.tabs.TabLayout;
 
-public class FileExplorerTabActivity extends Activity {
+
+public class FileExplorerTabActivity extends AppCompatActivity {
     private static final String INSTANCESTATE_TAB = "tab";
-    private static final int DEFAULT_OFFSCREEN_PAGES = 2;
-    ViewPager mViewPager;
-    TabsAdapter mTabsAdapter;
-    ActionMode mActionMode;
+    private static final String CATEGORY_TAG = "file-explorer-category";
+    private static final String LOCAL_TAG = "file-explorer-local";
+    private static final int TAB_COUNT = 2;
+    private static final int REQUEST_STORAGE_PERMISSIONS = 1;
+    private static final String STORAGE_ACCESS_EXPLANATION_SHOWN = "storage_access_explanation_shown";
+    private static final String LEGACY_STORAGE_PERMISSION_REQUESTED = "legacy_storage_permission_requested";
+
+    private final Fragment[] mFragments = new Fragment[TAB_COUNT];
+    private TabLayout mTabs;
+    private int mCurrentTab = Util.CATEGORY_TAB_INDEX;
+    private ActionMode mActionMode;
 
     @Override
     protected void onCreate(Bundle savedInstanceState) {
         super.onCreate(savedInstanceState);
-
         setContentView(R.layout.fragment_pager);
-        mViewPager = (ViewPager) findViewById(R.id.pager);
-        mViewPager.setOffscreenPageLimit(DEFAULT_OFFSCREEN_PAGES);
+        SystemBarInsets.apply(this, findViewById(android.R.id.content));
 
-        final ActionBar bar = getActionBar();
-        bar.setNavigationMode(ActionBar.NAVIGATION_MODE_TABS);
-        bar.setDisplayOptions(0, ActionBar.DISPLAY_SHOW_TITLE | ActionBar.DISPLAY_SHOW_HOME);
+        MaterialToolbar toolbar = findViewById(R.id.toolbar);
+        setSupportActionBar(toolbar);
+        mTabs = findViewById(R.id.tabs);
+        mTabs.addTab(mTabs.newTab().setText(R.string.tab_categories));
+        mTabs.addTab(mTabs.newTab().setText(R.string.tab_local));
 
-        mTabsAdapter = new TabsAdapter(this, mViewPager);
-        mTabsAdapter.addTab(bar.newTab().setText(R.string.tab_category),
-                FileCategoryActivity.class, null);
-        mTabsAdapter.addTab(bar.newTab().setText(R.string.tab_sd),
-                FileViewActivity.class, null);
-        mTabsAdapter.addTab(bar.newTab().setText(R.string.tab_remote),
-                ServerControlActivity.class, null);
-        bar.setSelectedNavigationItem(PreferenceManager.getDefaultSharedPreferences(this)
-                .getInt(INSTANCESTATE_TAB, Util.CATEGORY_TAB_INDEX));
+        FragmentManager fragmentManager = getFragmentManager();
+        mFragments[Util.CATEGORY_TAB_INDEX] = fragmentManager.findFragmentByTag(CATEGORY_TAG);
+        mFragments[Util.SDCARD_TAB_INDEX] = fragmentManager.findFragmentByTag(LOCAL_TAG);
+        if (mFragments[Util.CATEGORY_TAB_INDEX] == null) {
+            mFragments[Util.CATEGORY_TAB_INDEX] = new FileCategoryActivity();
+        }
+        if (mFragments[Util.SDCARD_TAB_INDEX] == null) {
+            mFragments[Util.SDCARD_TAB_INDEX] = new FileViewActivity();
+        }
+
+        int selectedTab = PreferenceManager.getDefaultSharedPreferences(this)
+                .getInt(INSTANCESTATE_TAB, Util.CATEGORY_TAB_INDEX);
+        if (selectedTab < 0 || selectedTab >= TAB_COUNT) {
+            selectedTab = Util.CATEGORY_TAB_INDEX;
+        }
+        mCurrentTab = selectedTab;
+        FragmentTransaction transaction = fragmentManager.beginTransaction();
+        if (!mFragments[Util.CATEGORY_TAB_INDEX].isAdded()) {
+            transaction.add(R.id.fragment_container, mFragments[Util.CATEGORY_TAB_INDEX], CATEGORY_TAG);
+        }
+        if (!mFragments[Util.SDCARD_TAB_INDEX].isAdded()) {
+            transaction.add(R.id.fragment_container, mFragments[Util.SDCARD_TAB_INDEX], LOCAL_TAG);
+        }
+        transaction.hide(mFragments[1 - selectedTab]).show(mFragments[selectedTab]).commit();
+        mTabs.selectTab(mTabs.getTabAt(selectedTab));
+        mTabs.addOnTabSelectedListener(new TabLayout.OnTabSelectedListener() {
+            @Override
+            public void onTabSelected(TabLayout.Tab tab) {
+                showTab(tab.getPosition());
+            }
+
+            @Override
+            public void onTabUnselected(TabLayout.Tab tab) {
+            }
+
+            @Override
+            public void onTabReselected(TabLayout.Tab tab) {
+            }
+        });
+        getOnBackPressedDispatcher().addCallback(this, new OnBackPressedCallback(true) {
+            @Override
+            public void handleOnBackPressed() {
+                Fragment fragment = mFragments[mCurrentTab];
+                if (fragment instanceof IBackPressedListener
+                        && ((IBackPressedListener) fragment).onBack()) {
+                    return;
+                }
+                setEnabled(false);
+                getOnBackPressedDispatcher().onBackPressed();
+                setEnabled(true);
+            }
+        });
+        requestStorageAccessIfNeeded();
+    }
+
+    public static boolean hasFileSystemAccess(Context context) {
+        if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.R) {
+            return Environment.isExternalStorageManager();
+        }
+        if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.M) {
+            return ContextCompat.checkSelfPermission(context, Manifest.permission.READ_EXTERNAL_STORAGE)
+                    == PackageManager.PERMISSION_GRANTED
+                    && ContextCompat.checkSelfPermission(context, Manifest.permission.WRITE_EXTERNAL_STORAGE)
+                    == PackageManager.PERMISSION_GRANTED;
+        }
+        return true;
+    }
+
+    private void requestStorageAccessIfNeeded() {
+        if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.R) {
+            if (!Environment.isExternalStorageManager()
+                    && !PreferenceManager.getDefaultSharedPreferences(this)
+                    .getBoolean(STORAGE_ACCESS_EXPLANATION_SHOWN, false)) {
+                PreferenceManager.getDefaultSharedPreferences(this).edit()
+                        .putBoolean(STORAGE_ACCESS_EXPLANATION_SHOWN, true).apply();
+                showAllFilesAccessExplanation();
+            }
+            return;
+        }
+        if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.M && !hasFileSystemAccess(this)) {
+            SharedPreferences prefs = PreferenceManager.getDefaultSharedPreferences(this);
+            if (!prefs.getBoolean(LEGACY_STORAGE_PERMISSION_REQUESTED, false)) {
+                prefs.edit().putBoolean(LEGACY_STORAGE_PERMISSION_REQUESTED, true).apply();
+                requestLegacyStoragePermissions();
+            }
+        }
+    }
+
+    private void showAllFilesAccessExplanation() {
+        new MaterialAlertDialogBuilder(this)
+                .setTitle(R.string.storage_access_title)
+                .setMessage(R.string.storage_access_explanation)
+                .setNegativeButton(R.string.cancel, null)
+                .setPositiveButton(R.string.storage_access_continue,
+                        (dialog, which) -> openAllFilesAccessSettings())
+                .show();
+    }
+
+    private void openAllFilesAccessSettings() {
+        if (Build.VERSION.SDK_INT < Build.VERSION_CODES.R) {
+            return;
+        }
+        Intent appSettings = new Intent(Settings.ACTION_MANAGE_APP_ALL_FILES_ACCESS_PERMISSION,
+                Uri.parse("package:" + getPackageName()));
+        try {
+            startActivity(appSettings);
+        } catch (ActivityNotFoundException exception) {
+            try {
+                startActivity(new Intent(Settings.ACTION_MANAGE_ALL_FILES_ACCESS_PERMISSION));
+            } catch (ActivityNotFoundException fallbackException) {
+                Toast.makeText(this, R.string.storage_access_required, Toast.LENGTH_LONG).show();
+            }
+        }
+    }
+
+    private void requestLegacyStoragePermissions() {
+        String[] permissions = {
+                Manifest.permission.READ_EXTERNAL_STORAGE,
+                Manifest.permission.WRITE_EXTERNAL_STORAGE
+        };
+        ActivityCompat.requestPermissions(this, permissions, REQUEST_STORAGE_PERMISSIONS);
+    }
+
+    @Override
+    public void onRequestPermissionsResult(int requestCode, String[] permissions, int[] grantResults) {
+        super.onRequestPermissionsResult(requestCode, permissions, grantResults);
+        if (requestCode != REQUEST_STORAGE_PERMISSIONS) {
+            return;
+        }
+        if (!hasFileSystemAccess(this)) {
+            Toast.makeText(this, R.string.storage_warning, Toast.LENGTH_LONG).show();
+        }
+        refreshStorageFragments();
+    }
+
+    @Override
+    protected void onResume() {
+        super.onResume();
+        refreshStorageFragments();
+        invalidateOptionsMenu();
+    }
+
+    private void refreshStorageFragments() {
+        be.ppareit.swiftp.Util.resetScoped();
+        if (mFragments[Util.SDCARD_TAB_INDEX] instanceof FileViewActivity) {
+            ((FileViewActivity) mFragments[Util.SDCARD_TAB_INDEX]).onStoragePermissionChanged();
+        }
+        if (mFragments[Util.CATEGORY_TAB_INDEX] instanceof FileCategoryActivity) {
+            ((FileCategoryActivity) mFragments[Util.CATEGORY_TAB_INDEX]).onStoragePermissionChanged();
+        }
+    }
+
+    private void showTab(int tabIndex) {
+        if (tabIndex < 0 || tabIndex >= TAB_COUNT || tabIndex == mCurrentTab) {
+            return;
+        }
+        if (tabIndex != Util.SDCARD_TAB_INDEX && mActionMode != null) {
+            mActionMode.finish();
+        }
+        FragmentTransaction transaction = getFragmentManager().beginTransaction();
+        transaction.hide(mFragments[mCurrentTab]).show(mFragments[tabIndex]).commit();
+        mCurrentTab = tabIndex;
     }
 
     @Override
     protected void onPause() {
         super.onPause();
         SharedPreferences.Editor editor = PreferenceManager.getDefaultSharedPreferences(this).edit();
-        editor.putInt(INSTANCESTATE_TAB, getActionBar().getSelectedNavigationIndex());
-        editor.commit();
+        editor.putInt(INSTANCESTATE_TAB, mCurrentTab);
+        editor.apply();
     }
 
     @Override
     public void onConfigurationChanged(Configuration newConfig) {
-        if (getActionBar().getSelectedNavigationIndex() == Util.CATEGORY_TAB_INDEX) {
-            FileCategoryActivity categoryFragement =(FileCategoryActivity) mTabsAdapter.getItem(Util.CATEGORY_TAB_INDEX);
-            if (categoryFragement.isHomePage()) {
+        if (mCurrentTab == Util.CATEGORY_TAB_INDEX) {
+            FileCategoryActivity categoryFragment =
+                    (FileCategoryActivity) mFragments[Util.CATEGORY_TAB_INDEX];
+            if (categoryFragment.isHomePage()) {
                 reInstantiateCategoryTab();
             } else {
-                categoryFragement.setConfigurationChanged(true);
+                categoryFragment.setConfigurationChanged(true);
             }
         }
         super.onConfigurationChanged(newConfig);
     }
 
-    public void reInstantiateCategoryTab() {
-        mTabsAdapter.destroyItem(mViewPager, Util.CATEGORY_TAB_INDEX,
-                mTabsAdapter.getItem(Util.CATEGORY_TAB_INDEX));
-        mTabsAdapter.instantiateItem(mViewPager, Util.CATEGORY_TAB_INDEX);
+    @Override
+    public boolean onCreateOptionsMenu(Menu menu) {
+        super.onCreateOptionsMenu(menu);
+        getMenuInflater().inflate(R.menu.main_menu, menu);
+        return true;
     }
 
     @Override
-    public void onBackPressed() {
-        IBackPressedListener backPressedListener = (IBackPressedListener) mTabsAdapter
-                .getItem(mViewPager.getCurrentItem());
-        if (!backPressedListener.onBack()) {
-            super.onBackPressed();
+    public boolean onOptionsItemSelected(MenuItem item) {
+        if (item.getItemId() == R.id.action_storage_access) {
+            if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.R) {
+                showAllFilesAccessExplanation();
+            } else {
+                requestLegacyStoragePermissions();
+            }
+            return true;
         }
+        if (item.getItemId() == R.id.action_ftp_server) {
+            startActivity(new android.content.Intent(this, FTPServerActivity.class));
+            return true;
+        }
+        if (item.getItemId() == R.id.action_settings) {
+            startActivity(new android.content.Intent(this, FileExplorerPreferenceActivity.class));
+            return true;
+        }
+        if (item.getItemId() == R.id.action_refresh) {
+            Fragment currentFragment = mFragments[mCurrentTab];
+            if (currentFragment instanceof FileCategoryActivity) {
+                ((FileCategoryActivity) currentFragment).refresh();
+            } else if (currentFragment instanceof FileViewActivity) {
+                ((FileViewActivity) currentFragment).refresh();
+            }
+            return true;
+        }
+        if (item.getItemId() == R.id.action_exit) {
+            finish();
+            return true;
+        }
+        return super.onOptionsItemSelected(item);
+    }
+
+    @Override
+    public boolean onPrepareOptionsMenu(Menu menu) {
+        MenuItem storageAccess = menu.findItem(R.id.action_storage_access);
+        if (storageAccess != null) {
+            storageAccess.setVisible(!hasFileSystemAccess(this));
+        }
+        return super.onPrepareOptionsMenu(menu);
     }
 
     public interface IBackPressedListener {
-        /**
-         * 处理back事件。
-         * @return True: 表示已经处理; False: 没有处理，让基类处理。
-         */
         boolean onBack();
     }
 
@@ -118,105 +316,30 @@ public class FileExplorerTabActivity extends Activity {
     }
 
     public Fragment getFragment(int tabIndex) {
-        return mTabsAdapter.getItem(tabIndex);
+        if (tabIndex < 0 || tabIndex >= TAB_COUNT) {
+            throw new IllegalArgumentException("Unknown tab index: " + tabIndex);
+        }
+        return mFragments[tabIndex];
     }
 
-    /**
-     * This is a helper class that implements the management of tabs and all
-     * details of connecting a ViewPager with associated TabHost.  It relies on a
-     * trick.  Normally a tab host has a simple API for supplying a View or
-     * Intent that each tab will show.  This is not sufficient for switching
-     * between pages.  So instead we make the content part of the tab host
-     * 0dp high (it is not shown) and the TabsAdapter supplies its own dummy
-     * view to show as the tab content.  It listens to changes in tabs, and takes
-     * care of switch to the correct paged in the ViewPager whenever the selected
-     * tab changes.
-     */
-    public static class TabsAdapter extends FragmentPagerAdapter
-            implements ActionBar.TabListener, ViewPager.OnPageChangeListener {
-        private final Context mContext;
-        private final ActionBar mActionBar;
-        private final ViewPager mViewPager;
-        private final ArrayList<TabInfo> mTabs = new ArrayList<TabInfo>();
-
-        static final class TabInfo {
-            private final Class<?> clss;
-            private final Bundle args;
-            private Fragment fragment;
-
-            TabInfo(Class<?> _class, Bundle _args) {
-                clss = _class;
-                args = _args;
-            }
+    public void reInstantiateCategoryTab() {
+        FileCategoryActivity categoryFragment = new FileCategoryActivity();
+        FragmentTransaction transaction = getFragmentManager().beginTransaction()
+                .replace(R.id.fragment_container, categoryFragment, CATEGORY_TAG);
+        if (mCurrentTab != Util.CATEGORY_TAB_INDEX) {
+            transaction.hide(categoryFragment);
         }
+        transaction.commit();
+        mFragments[Util.CATEGORY_TAB_INDEX] = categoryFragment;
+    }
 
-        public TabsAdapter(Activity activity, ViewPager pager) {
-            super(activity.getFragmentManager());
-            mContext = activity;
-            mActionBar = activity.getActionBar();
-            mViewPager = pager;
-            mViewPager.setAdapter(this);
-            mViewPager.setOnPageChangeListener(this);
+    public void selectTab(int tabIndex) {
+        if (tabIndex >= 0 && tabIndex < TAB_COUNT) {
+            mTabs.selectTab(mTabs.getTabAt(tabIndex));
         }
+    }
 
-        public void addTab(ActionBar.Tab tab, Class<?> clss, Bundle args) {
-            TabInfo info = new TabInfo(clss, args);
-            tab.setTag(info);
-            tab.setTabListener(this);
-            mTabs.add(info);
-            mActionBar.addTab(tab);
-            notifyDataSetChanged();
-        }
-
-        @Override
-        public int getCount() {
-            return mTabs.size();
-        }
-
-        @Override
-        public Fragment getItem(int position) {
-            TabInfo info = mTabs.get(position);
-            if (info.fragment == null) {
-                info.fragment = Fragment.instantiate(mContext, info.clss.getName(), info.args);
-            }
-            return info.fragment;
-        }
-
-        @Override
-        public void onPageScrolled(int position, float positionOffset, int positionOffsetPixels) {
-        }
-
-        @Override
-        public void onPageSelected(int position) {
-            mActionBar.setSelectedNavigationItem(position);
-        }
-
-        @Override
-        public void onPageScrollStateChanged(int state) {
-        }
-
-        @Override
-        public void onTabSelected(Tab tab, FragmentTransaction ft) {
-            Object tag = tab.getTag();
-            for (int i=0; i<mTabs.size(); i++) {
-                if (mTabs.get(i) == tag) {
-                    mViewPager.setCurrentItem(i);
-                }
-            }
-            if(!tab.getText().equals(mContext.getString(R.string.tab_sd))) {
-                ActionMode actionMode = ((FileExplorerTabActivity) mContext).getActionMode();
-                if (actionMode != null) {
-                    actionMode.finish();
-                }
-            }
-        }
-
-        @Override
-        public void onTabUnselected(Tab tab, FragmentTransaction ft) {
-        }
-
-        @Override
-        public void onTabReselected(Tab tab, FragmentTransaction ft) {
-        }
+    public int getSelectedTab() {
+        return mCurrentTab;
     }
 }

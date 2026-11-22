@@ -39,6 +39,7 @@ public class FileExplorerPreferenceActivity extends PreferenceActivity implement
     private static final String PRIMARY_FOLDER = "pref_key_primary_folder";
     private static final String READ_ROOT = "pref_key_read_root";
     private static final String SHOW_REAL_PATH = "pref_key_show_real_path";
+    private static final String LEGACY_PRIMARY_FOLDER = "/mnt/sdcard";
     private static final String SYSTEM_SEPARATOR = File.separator;
 
     private EditTextPreference mEditTextPreference;
@@ -47,6 +48,7 @@ public class FileExplorerPreferenceActivity extends PreferenceActivity implement
     protected void onCreate(Bundle savedInstanceState) {
         super.onCreate(savedInstanceState);
         addPreferencesFromResource(R.xml.preferences);
+        SystemBarInsets.apply(this, findViewById(android.R.id.content));
 
         mEditTextPreference = (EditTextPreference) findPreference(PRIMARY_FOLDER);
     }
@@ -59,8 +61,7 @@ public class FileExplorerPreferenceActivity extends PreferenceActivity implement
         SharedPreferences sharedPreferences = getPreferenceScreen().getSharedPreferences();
 
         mEditTextPreference.setSummary(this.getString(
-                R.string.pref_primary_folder_summary,
-                sharedPreferences.getString(PRIMARY_FOLDER, GlobalConsts.ROOT_PATH)));
+                R.string.pref_primary_folder_summary, getPrimaryFolder(this)));
 
         // Set up a listener whenever a key changes
         sharedPreferences.registerOnSharedPreferenceChangeListener(this);
@@ -79,16 +80,21 @@ public class FileExplorerPreferenceActivity extends PreferenceActivity implement
         if (PRIMARY_FOLDER.equals(key)) {
             mEditTextPreference.setSummary(this.getString(
                     R.string.pref_primary_folder_summary,
-                    sharedpreferences.getString(PRIMARY_FOLDER, GlobalConsts.ROOT_PATH)));
+                    getPrimaryFolder(this)));
         }
     }
 
     public static String getPrimaryFolder(Context context) {
         SharedPreferences settings = PreferenceManager.getDefaultSharedPreferences(context);
-        String primaryFolder = settings.getString(PRIMARY_FOLDER, context.getString(R.string.default_primary_folder, GlobalConsts.ROOT_PATH));
+        String sdDirectory = Util.getSdDirectory();
+        String primaryFolder = settings.getString(PRIMARY_FOLDER, sdDirectory);
 
         if (TextUtils.isEmpty(primaryFolder)) { // setting primary folder = empty("")
             primaryFolder = GlobalConsts.ROOT_PATH;
+        } else if (primaryFolder.equals(LEGACY_PRIMARY_FOLDER)
+                || primaryFolder.startsWith(LEGACY_PRIMARY_FOLDER + SYSTEM_SEPARATOR)) {
+            primaryFolder = sdDirectory + primaryFolder.substring(LEGACY_PRIMARY_FOLDER.length());
+            settings.edit().putString(PRIMARY_FOLDER, primaryFolder).apply();
         }
 
         // it's remove the end char of the home folder setting when it with the '/' at the end.

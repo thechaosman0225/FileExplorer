@@ -1,8 +1,10 @@
 <?xml version="1.0" encoding="utf-8"?>
 <LinearLayout xmlns:android="http://schemas.android.com/apk/res/android"
+	xmlns:app="http://schemas.android.com/apk/res-auto"
 	android:id="@+id/file_browse_frame"
 	android:layout_width="fill_parent"
 	android:layout_height="fill_parent"
+	android:background="?attr/colorSurface"
 	android:orientation="vertical" >
 
 	<!-- path -->
@@ -11,7 +13,7 @@
 		android:id="@+id/navigation_bar"
 		android:layout_width="fill_parent"
 		android:layout_height="wrap_content"
-		android:background="@drawable/secondary_title_background"
+		android:background="?attr/colorSurface"
 		android:gravity="center_vertical"
 		android:paddingLeft="10dip"
 		android:paddingRight="10dip"
@@ -27,7 +29,7 @@
 				android:id="@+id/current_path_pane"
 				android:layout_width="fill_parent"
 				android:layout_height="wrap_content"
-				android:background="@drawable/path_pane_bg"
+				android:background="@drawable/file_explorer_path_background"
 				android:gravity="center_vertical"
 				android:maxWidth="300dip" >
 
@@ -45,7 +47,8 @@
 						android:layout_height="wrap_content"
 						android:ellipsize="start"
 						android:paddingLeft="10dip"
-						android:singleLine="true" />
+						android:singleLine="true"
+						android:textColor="?attr/colorOnSurface" />
 				</LinearLayout>
 
 				<ImageView
@@ -53,17 +56,24 @@
 					android:layout_width="wrap_content"
 					android:layout_height="wrap_content"
 					android:layout_gravity="center_vertical"
-					android:src="@drawable/arrow_down" />
+					android:src="@drawable/arrow_down"
+					android:tint="?attr/colorOnSurfaceVariant" />
 			</LinearLayout>
 		</LinearLayout>
 
-		<ImageView
+		<com.google.android.material.button.MaterialButton
 			android:id="@+id/path_pane_up_level"
-			android:layout_width="wrap_content"
-			android:layout_height="wrap_content"
+			style="@style/Widget.Material3.Button.IconButton"
+			android:layout_width="48dp"
+			android:layout_height="48dp"
 			android:layout_gravity="center_vertical|right"
 			android:layout_marginLeft="5dip"
-			android:src="@drawable/path_up_level" />
+			android:contentDescription="@string/up_level"
+			android:insetLeft="0dp"
+			android:insetRight="0dp"
+			app:icon="@drawable/ic_arrow_upward_24"
+			app:iconSize="24dp"
+			app:iconTint="?attr/colorOnSurfaceVariant" />
 	</LinearLayout>
 	<!-- end path -->
 
@@ -102,6 +112,7 @@
 				android:src="@drawable/empty_icon" />
 
 			<TextView
+				android:id="@+id/storage_status_message"
 				android:layout_width="wrap_content"
 				android:layout_height="wrap_content"
 				android:singleLine="true"
@@ -114,7 +125,7 @@
 			android:id="@+id/dropdown_navigation"
 			android:layout_width="fill_parent"
 			android:layout_height="wrap_content"
-			android:background="@drawable/dropdown"
+			android:background="?attr/colorSurfaceContainer"
 			android:overScrollMode="never"
 			android:visibility="gone" >
 
@@ -158,19 +169,19 @@
 				android:layout_width="0dp"
 				android:layout_height="match_parent"
 				android:layout_weight="1"
+				android:gravity="center"
 				android:orientation="vertical" >
 
 				<LinearLayout
 					android:layout_width="match_parent"
-					android:layout_height="0dp"
+					android:layout_height="wrap_content"
 					android:layout_gravity="center"
-					android:layout_weight="1"
 					android:orientation="horizontal" >
 
 					<LinearLayout
 						android:id="@+id/category_music"
 						style="@style/CategoryButtonStyle"
-						android:background="@drawable/category_button_top" >
+						android:background="@drawable/category_tile_background" >
 
 						<ImageView
 							style="@style/CategoryButtonIconStyle"
@@ -188,7 +199,7 @@
 					<LinearLayout
 						android:id="@+id/category_video"
 						style="@style/CategoryButtonStyle"
-						android:background="@drawable/category_button_top" >
+						android:background="@drawable/category_tile_background" >
 
 						<ImageView
 							style="@style/CategoryButtonIconStyle"
@@ -206,7 +217,7 @@
 					<LinearLayout
 						android:id="@+id/category_picture"
 						style="@style/CategoryButtonStyle"
-						android:background="@drawable/category_button_top" >
+						android:background="@drawable/category_tile_background" >
 
 						<ImageView
 							style="@style/CategoryButtonIconStyle"
@@ -221,36 +232,18 @@
 							style="@style/CategoryButtonCountTextStyle" />
 					</LinearLayout>
 
-					<LinearLayout
-						android:id="@+id/category_theme"
-						style="@style/CategoryButtonStyle"
-						android:background="@drawable/category_button_top" >
-
-						<ImageView
-							style="@style/CategoryButtonIconStyle"
-							android:src="@drawable/category_icon_theme" />
-
-						<TextView
-							style="@style/CategoryButtonTextStyle"
-							android:text="@string/category_theme" />
-
-						<TextView
-							android:id="@+id/category_theme_count"
-							style="@style/CategoryButtonCountTextStyle" />
-					</LinearLayout>
 				</LinearLayout>
 
 				<LinearLayout
 					android:layout_width="match_parent"
-					android:layout_height="0dp"
+					android:layout_height="wrap_content"
 					android:layout_gravity="center"
-					android:layout_weight="1"
 					android:orientation="horizontal" >
 
 					<LinearLayout
 						android:id="@+id/category_document"
 						style="@style/CategoryButtonStyle"
-						android:background="@drawable/category_button_bottom" >
+						android:background="@drawable/category_tile_background" >
 
 						<ImageView
 							style="@style/CategoryButtonIconStyle"
@@ -268,7 +261,7 @@
 					<LinearLayout
 						android:id="@+id/category_zip"
 						style="@style/CategoryButtonStyle"
-						android:background="@drawable/category_button_bottom" >
+						android:background="@drawable/category_tile_background" >
 
 						<ImageView
 							style="@style/CategoryButtonIconStyle"
@@ -286,7 +279,7 @@
 					<LinearLayout
 						android:id="@+id/category_apk"
 						style="@style/CategoryButtonStyle"
-						android:background="@drawable/category_button_bottom" >
+						android:background="@drawable/category_tile_background" >
 
 						<ImageView
 							style="@style/CategoryButtonIconStyle"
@@ -301,10 +294,18 @@
 							style="@style/CategoryButtonCountTextStyle" />
 					</LinearLayout>
 
+				</LinearLayout>
+
+				<LinearLayout
+					android:layout_width="match_parent"
+					android:layout_height="wrap_content"
+					android:layout_gravity="center"
+					android:orientation="horizontal" >
+
 					<LinearLayout
 						android:id="@+id/category_favorite"
 						style="@style/CategoryButtonStyle"
-						android:background="@drawable/category_button_bottom" >
+						android:background="@drawable/category_tile_background" >
 
 						<ImageView
 							style="@style/CategoryButtonIconStyle"
@@ -317,6 +318,34 @@
 						<TextView
 							android:id="@+id/category_favorite_count"
 							style="@style/CategoryButtonCountTextStyle" />
+					</LinearLayout>
+
+					<LinearLayout
+						android:id="@+id/category_ftp_server"
+						style="@style/CategoryButtonStyle"
+						android:background="@drawable/category_tile_background" >
+
+						<ImageView
+							style="@style/CategoryButtonIconStyle"
+							android:src="@drawable/ic_ftp_server_24" />
+
+						<TextView
+							style="@style/CategoryButtonTextStyle"
+							android:text="@string/ftp_server_title" />
+					</LinearLayout>
+
+					<LinearLayout
+						android:id="@+id/category_recent"
+						style="@style/CategoryButtonStyle"
+						android:background="@drawable/category_tile_background" >
+
+						<ImageView
+							style="@style/CategoryButtonIconStyle"
+							android:src="@drawable/ic_history_24" />
+
+						<TextView
+							style="@style/CategoryButtonTextStyle"
+							android:text="@string/category_recent" />
 					</LinearLayout>
 				</LinearLayout>
 			</LinearLayout>
@@ -335,7 +364,7 @@
 				android:layout_width="wrap_content"
 				android:layout_height="match_parent"
 				android:layout_gravity="right"
-				android:background="@drawable/information_bg"
+				android:background="@color/m3_surface"
 				android:orientation="vertical"
 				android:paddingTop="5dip" >
 
@@ -377,11 +406,6 @@
 						android:id="@+id/category_legend_picture"
 						style="@style/CategoryLegendStyleLand"
 						android:drawableLeft="@drawable/legend_picture" />
-
-					<TextView
-						android:id="@+id/category_legend_theme"
-						style="@style/CategoryLegendStyleLand"
-						android:drawableLeft="@drawable/legend_theme" />
 
 					<TextView
 						android:id="@+id/category_legend_document"

@@ -20,10 +20,12 @@
 package net.micode.fileexplorer;
 
 import java.io.File;
+import java.io.FilenameFilter;
 import java.io.IOException;
 import java.net.URISyntaxException;
 import java.util.ArrayList;
 import java.util.Collections;
+import java.util.List;
 
 import android.app.Activity;
 import android.app.Fragment;
@@ -43,6 +45,13 @@ import android.view.View.OnClickListener;
 import android.view.ViewGroup;
 import android.widget.ArrayAdapter;
 import android.widget.ListView;
+import android.widget.Toast;
+
+import androidx.core.content.ContextCompat;
+import androidx.core.content.FileProvider;
+
+import com.google.android.material.button.MaterialButton;
+import com.google.android.material.dialog.MaterialAlertDialogBuilder;
 
 import net.micode.fileexplorer.FileExplorerTabActivity.IBackPressedListener;
 import net.micode.fileexplorer.FileViewInteractionHub.Mode;
@@ -59,7 +68,6 @@ public class FileViewActivity extends Fragment implements
     public static final String ROOT_DIRECTORY = "root_directory";
 
     public static final String PICK_FOLDER = "pick_folder";
-
     private ListView mFileListView;
 
     // private TextView mCurrentPathTextView;
@@ -76,6 +84,9 @@ public class FileViewActivity extends Fragment implements
     private Activity mActivity;
 
     private View mRootView;
+
+    private MaterialButton mStorageSelector;
+    private String mSelectedStoragePath = sdDir;
 
     private static final String sdDir = Util.getSdDirectory();
 
@@ -106,6 +117,7 @@ public class FileViewActivity extends Fragment implements
         mActivity = getActivity();
         // getWindow().setFormat(android.graphics.PixelFormat.RGBA_8888);
         mRootView = inflater.inflate(R.layout.file_explorer_list, container, false);
+        mStorageSelector = mRootView.findViewById(R.id.storage_locations);
         ActivitiesManager.getInstance().registerActivity(ActivitiesManager.ACTIVITY_FILE_VIEW, mActivity);
 
         mFileCagetoryHelper = new FileCategoryHelper(mActivity);
@@ -184,7 +196,11 @@ public class FileViewActivity extends Fragment implements
         }
 
         mFileViewInteractionHub.setCurrentPath(currentDir);
+        mSelectedStoragePath = getStorageRootForPath(currentDir);
         Log.i(LOG_TAG, "CurrentDir = " + currentDir);
+        mRootView.findViewById(R.id.storage_locations)
+                .setVisibility(mFileViewInteractionHub.getMode() == Mode.View ? View.VISIBLE : View.GONE);
+        updateStorageLocations();
 
         mBackspaceExit = (uri != null)
                 && (TextUtils.isEmpty(action)
@@ -197,7 +213,8 @@ public class FileViewActivity extends Fragment implements
         intentFilter.addAction(Intent.ACTION_MEDIA_MOUNTED);
         intentFilter.addAction(Intent.ACTION_MEDIA_UNMOUNTED);
         intentFilter.addDataScheme("file");
-        mActivity.registerReceiver(mReceiver, intentFilter);
+        ContextCompat.registerReceiver(mActivity, mReceiver, intentFilter,
+                ContextCompat.RECEIVER_NOT_EXPORTED);
 
         updateUI();
         setHasOptionsMenu(true);
@@ -208,6 +225,21 @@ public class FileViewActivity extends Fragment implements
     public void onDestroyView() {
         super.onDestroyView();
         mActivity.unregisterReceiver(mReceiver);
+    }
+
+    @Override
+    public void onResume() {
+        super.onResume();
+        updateStorageLocations();
+        if (mFileViewInteractionHub != null) {
+            mFileViewInteractionHub.refreshFileList();
+        }
+    }
+
+    public void onStoragePermissionChanged() {
+        if (mRootView != null) {
+            updateUI();
+        }
     }
 
     @Override
@@ -224,7 +256,7 @@ public class FileViewActivity extends Fragment implements
 
     @Override
     public boolean onBack() {
-        if (mBackspaceExit || !Util.isSDCardReady() || mFileViewInteractionHub == null) {
+        if (mBackspaceExit || mFileViewInteractionHub == null) {
             return false;
         }
         return mFileViewInteractionHub.onBackPressed();
@@ -280,6 +312,11 @@ public class FileViewActivity extends Fragment implements
         return pos;
     }
     public boolean onRefreshFileList(String path, FileSortHelper sort) {
+        if (mFileViewInteractionHub.getMode() == Mode.View) {
+            View navigationBar = mRootView.findViewById(R.id.navigation_bar);
+            navigationBar.setVisibility(path.equals(mFileViewInteractionHub.getRootPath())
+                    ? View.GONE : View.VISIBLE);
+        }
         File file = new File(path);
         if (!file.exists() || !file.isDirectory()) {
             return false;
@@ -318,16 +355,85 @@ public class FileViewActivity extends Fragment implements
         return true;
     }
 
+    private void updateStorageLocations() {
+        if (mStorageSelector == null || mActivity == null) {
+            return;
+        }
+        mStorageSelector.setText(getStorageLabel(mSelectedStoragePath));
+        mStorageSelector.setOnClickListener(view -> showStorageOptions());
+    }
+
+    private void showStorageOptions() {
+        if (!FileExplorerTabActivity.hasFileSystemAccess(mActivity)) {
+            Toast.makeText(mActivity, R.string.storage_access_required, Toast.LENGTH_LONG).show();
+            return;
+        }
+        List<StorageLocations.Location> locations = StorageLocations.mounted(mActivity);
+        List<String> labels = new ArrayList<>();
+        for (StorageLocations.Location location : locations) {
+            labels.add(location.primary
+                    ? getString(R.string.storage_internal)
+                    : location.name);
+        }
+
+        String[] options = labels.toArray(new String[0]);
+        new MaterialAlertDialogBuilder(mActivity)
+                .setTitle(R.string.storage_select_title)
+                .setItems(options, (dialog, which) -> {
+                    if (which < locations.size()) {
+                        setStorageRoot(locations.get(which).path);
+                    }
+                })
+                .show();
+    }
+
+    private String getStorageRootForPath(String path) {
+        StorageLocations.Location location =
+                StorageLocations.containing(StorageLocations.mounted(mActivity), path);
+        return location == null ? sdDir : location.path;
+    }
+
+    private String getStorageLabel(String path) {
+        for (StorageLocations.Location location : StorageLocations.mounted(mActivity)) {
+            if (location.path.equals(path)) {
+                return location.primary
+                        ? getString(R.string.storage_internal)
+                        : location.name;
+            }
+        }
+        return getString(R.string.storage_internal);
+    }
+
+    private void setStorageRoot(String path) {
+        mSelectedStoragePath = path;
+        updateStorageLocations();
+        mScrollPositionList.clear();
+        mPreviousPath = null;
+        mFileViewInteractionHub.setRootPath(path);
+        mFileViewInteractionHub.refreshFileList();
+    }
+
     private void updateUI() {
-        boolean sdCardReady = Util.isSDCardReady();
+        boolean sdCardReady = Util.isSDCardReady()
+                && FileExplorerTabActivity.hasFileSystemAccess(mActivity);
+        boolean storageReady = sdCardReady;
+        updateStorageLocations();
         View noSdView = mRootView.findViewById(R.id.sd_not_available_page);
-        noSdView.setVisibility(sdCardReady ? View.GONE : View.VISIBLE);
+        noSdView.setVisibility(storageReady ? View.GONE : View.VISIBLE);
+        mStorageSelector.setVisibility(storageReady && mFileViewInteractionHub.getMode() == Mode.View
+                ? View.VISIBLE : View.GONE);
+        android.widget.TextView storageMessage = mRootView.findViewById(R.id.storage_status_message);
+        if (Util.isSDCardReady() && !FileExplorerTabActivity.hasFileSystemAccess(mActivity)) {
+            storageMessage.setText(R.string.storage_access_required);
+        } else {
+            storageMessage.setText(R.string.enable_sd_card);
+        }
 
         View navigationBar = mRootView.findViewById(R.id.navigation_bar);
-        navigationBar.setVisibility(sdCardReady ? View.VISIBLE : View.GONE);
-        mFileListView.setVisibility(sdCardReady ? View.VISIBLE : View.GONE);
+        navigationBar.setVisibility(storageReady ? View.VISIBLE : View.GONE);
+        mFileListView.setVisibility(storageReady ? View.VISIBLE : View.GONE);
 
-        if(sdCardReady) {
+        if (storageReady) {
             mFileViewInteractionHub.refreshFileList();
         }
     }
@@ -363,12 +469,15 @@ public class FileViewActivity extends Fragment implements
     @Override
     public void onPick(FileInfo f) {
         try {
-            Intent intent = Intent.parseUri(Uri.fromFile(new File(f.filePath)).toString(), 0);
+            Uri uri = FileProvider.getUriForFile(mActivity,
+                    mActivity.getPackageName() + ".fileprovider", new File(f.filePath));
+            Intent intent = new Intent().setData(uri)
+                    .addFlags(Intent.FLAG_GRANT_READ_URI_PERMISSION);
             mActivity.setResult(Activity.RESULT_OK, intent);
             mActivity.finish();
-            return;
-        } catch (URISyntaxException e) {
-            e.printStackTrace();
+        } catch (IllegalArgumentException exception) {
+            Log.e(LOG_TAG, "Unable to provide access to selected file: " + f.filePath, exception);
+            Toast.makeText(mActivity, R.string.storage_access_failed, Toast.LENGTH_LONG).show();
         }
     }
 
@@ -385,11 +494,18 @@ public class FileViewActivity extends Fragment implements
     //支持显示真实路径
     @Override
     public String getDisplayPath(String path) {
-        if (path.startsWith(this.sdDir) && !FileExplorerPreferenceActivity.showRealPath(mActivity)) {
-            return getString(R.string.sd_folder) + path.substring(this.sdDir.length());
-        } else {
-            return path;
+        StorageLocations.Location location =
+                StorageLocations.containing(StorageLocations.mounted(mActivity), path);
+        if (location != null) {
+            if (location.primary && !FileExplorerPreferenceActivity.showRealPath(mActivity)) {
+                return getString(R.string.sd_folder) + path.substring(location.path.length());
+            }
+            String label = location.primary
+                    ? location.path
+                    : location.name;
+            return label + path.substring(location.path.length());
         }
+        return path;
     }
 
     @Override
@@ -397,9 +513,17 @@ public class FileViewActivity extends Fragment implements
         final String perfixName = getString(R.string.sd_folder);
         if (displayPath.startsWith(perfixName)) {
             return this.sdDir + displayPath.substring(perfixName.length());
-        } else {
-            return displayPath;
         }
+        for (StorageLocations.Location location : StorageLocations.mounted(mActivity)) {
+            if (location.primary) {
+                continue;
+            }
+            String label = location.name;
+            if (displayPath.equals(label) || displayPath.startsWith(label + File.separator)) {
+                return location.path + displayPath.substring(label.length());
+            }
+        }
+        return displayPath;
     }
 
     @Override

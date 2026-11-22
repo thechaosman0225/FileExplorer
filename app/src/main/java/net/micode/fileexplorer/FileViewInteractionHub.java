@@ -62,6 +62,7 @@ import net.micode.fileexplorer.FileSortHelper.SortMethod;
 import net.micode.fileexplorer.FileViewActivity.SelectFilesCallback;
 import net.micode.fileexplorer.TextInputDialog.OnFinishListener;
 
+
 public class FileViewInteractionHub implements IOperationProgressListener {
     private static final String LOG_TAG = "FileViewInteractionHub";
 
@@ -242,10 +243,6 @@ public class FileViewInteractionHub implements IOperationProgressListener {
 
     };
 
-    private void onOperationReferesh() {
-        refreshFileList();
-    }
-
     private void onOperationFavorite() {
         String path = mCurrentPath;
 
@@ -254,17 +251,6 @@ public class FileViewInteractionHub implements IOperationProgressListener {
         }
 
         onOperationFavorite(path);
-    }
-
-    private void onOperationSetting() {
-        Intent intent = new Intent(mContext, FileExplorerPreferenceActivity.class);
-        if (intent != null) {
-            try {
-                mContext.startActivity(intent);
-            } catch (ActivityNotFoundException e) {
-                Log.e(LOG_TAG, "fail to start setting: " + e.toString());
-            }
-        }
     }
 
     private void onOperationFavorite(String path) {
@@ -523,7 +509,7 @@ public class FileViewInteractionHub implements IOperationProgressListener {
             }
         }
 
-        Intent intent = IntentBuilder.buildSendFile(selectedFileList);
+        Intent intent = IntentBuilder.buildSendFile(mContext, selectedFileList);
         if (intent != null) {
             try {
                 mFileViewListener.startActivity(intent);
@@ -745,13 +731,7 @@ public class FileViewInteractionHub implements IOperationProgressListener {
 
     private static final int MENU_SORT_TYPE = 14;
 
-    private static final int MENU_REFRESH = 15;
-
     private static final int MENU_SELECTALL = 16;
-
-    private static final int MENU_SETTING = 17;
-
-    private static final int MENU_EXIT = 18;
 
     private OnMenuItemClickListener menuItemClick = new OnMenuItemClickListener() {
 
@@ -774,9 +754,6 @@ public class FileViewInteractionHub implements IOperationProgressListener {
                 case GlobalConsts.MENU_NEW_FOLDER:
                     onOperationCreateFolder();
                     break;
-                case MENU_REFRESH:
-                    onOperationReferesh();
-                    break;
                 case MENU_SELECTALL:
                     onOperationSelectAllOrCancel();
                     break;
@@ -785,12 +762,6 @@ public class FileViewInteractionHub implements IOperationProgressListener {
                     break;
                 case GlobalConsts.MENU_FAVORITE:
                     onOperationFavorite();
-                    break;
-                case MENU_SETTING:
-                    onOperationSetting();
-                    break;
-                case MENU_EXIT:
-                    ((FileExplorerTabActivity) mContext).finish();
                     break;
                 // sort
                 case MENU_SORT_NAME:
@@ -879,10 +850,6 @@ public class FileViewInteractionHub implements IOperationProgressListener {
                 R.drawable.ic_menu_delete_favorite);
         addMenuItem(menu, GlobalConsts.MENU_SHOWHIDE, 5, R.string.operation_show_sys,
                 R.drawable.ic_menu_show_sys);
-        addMenuItem(menu, MENU_REFRESH, 6, R.string.operation_refresh,
-                R.drawable.ic_menu_refresh);
-        addMenuItem(menu, MENU_SETTING, 7, R.string.menu_setting, drawable.ic_menu_preferences);
-        addMenuItem(menu, MENU_EXIT, 8, R.string.menu_exit, drawable.ic_menu_close_clear_cancel);
         return true;
     }
 

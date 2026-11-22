@@ -29,18 +29,19 @@ import android.content.Intent;
 import android.net.Uri;
 import android.text.TextUtils;
 
+import androidx.core.content.FileProvider;
+
 public class IntentBuilder {
 
     public static void viewFile(final Context context, final String filePath) {
         String type = getMimeType(filePath);
+        Uri fileUri = getFileUri(context, filePath);
+        if (fileUri == null) {
+            return;
+        }
 
         if (!TextUtils.isEmpty(type) && !TextUtils.equals(type, "*/*")) {
-            /* 设置intent的file与MimeType */
-            Intent intent = new Intent();
-            intent.addFlags(Intent.FLAG_ACTIVITY_NEW_TASK);
-            intent.setAction(android.content.Intent.ACTION_VIEW);
-            intent.setDataAndType(Uri.fromFile(new File(filePath)), type);
-            context.startActivity(intent);
+            launchFile(context, fileUri, type);
         } else {
             // unknown MimeType
             AlertDialog.Builder dialogBuilder = new AlertDialog.Builder(context);
@@ -70,18 +71,14 @@ public class IntentBuilder {
                                 selectType = "image/*";
                                 break;
                             }
-                            Intent intent = new Intent();
-                            intent.addFlags(Intent.FLAG_ACTIVITY_NEW_TASK);
-                            intent.setAction(android.content.Intent.ACTION_VIEW);
-                            intent.setDataAndType(Uri.fromFile(new File(filePath)), selectType);
-                            context.startActivity(intent);
+                            launchFile(context, fileUri, selectType);
                         }
                     });
             dialogBuilder.show();
         }
     }
 
-    public static Intent buildSendFile(ArrayList<FileInfo> files) {
+    public static Intent buildSendFile(Context context, ArrayList<FileInfo> files) {
         ArrayList<Uri> uris = new ArrayList<Uri>();
 
         String mimeType = "*/*";
@@ -89,9 +86,11 @@ public class IntentBuilder {
             if (file.IsDir)
                 continue;
 
-            File fileIn = new File(file.filePath);
             mimeType = getMimeType(file.fileName);
-            Uri u = Uri.fromFile(fileIn);
+            Uri u = getFileUri(context, file.filePath);
+            if (u == null) {
+                return null;
+            }
             uris.add(u);
         }
 
@@ -109,8 +108,21 @@ public class IntentBuilder {
             intent.setType(mimeType);
             intent.putExtra(Intent.EXTRA_STREAM, uris.get(0));
         }
+        intent.addFlags(Intent.FLAG_GRANT_READ_URI_PERMISSION);
 
         return intent;
+    }
+
+    private static Uri getFileUri(Context context, String filePath) {
+        return FileProvider.getUriForFile(context,
+                context.getPackageName() + ".fileprovider", new File(filePath));
+    }
+
+    private static void launchFile(Context context, Uri uri, String mimeType) {
+        Intent intent = new Intent(Intent.ACTION_VIEW);
+        intent.addFlags(Intent.FLAG_ACTIVITY_NEW_TASK | Intent.FLAG_GRANT_READ_URI_PERMISSION);
+        intent.setDataAndType(uri, mimeType);
+        context.startActivity(intent);
     }
 
     private static String getMimeType(String filePath) {

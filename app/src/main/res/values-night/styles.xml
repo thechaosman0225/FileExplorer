@@ -1,0 +1,24 @@
+<resources>
+    <style name="Theme.FileExplorer" parent="Theme.Material3.DayNight.NoActionBar">
+        <item name="colorPrimary">@color/m3_primary</item>
+        <item name="colorOnPrimary">@color/m3_on_primary</item>
+        <item name="colorPrimaryContainer">@color/m3_primary_container</item>
+        <item name="colorOnPrimaryContainer">@color/m3_on_primary_container</item>
+        <item name="colorSecondary">@color/m3_secondary</item>
+        <item name="colorOnSecondary">@color/m3_on_secondary</item>
+        <item name="colorTertiary">@color/m3_tertiary</item>
+        <item name="colorOnTertiary">@color/m3_on_tertiary</item>
+        <item name="colorSurface">@color/m3_surface</item>
+        <item name="colorOnSurface">@color/m3_on_surface</item>
+        <item name="colorSurfaceContainer">@color/m3_surface_container</item>
+        <item name="colorSurfaceContainerLow">@color/m3_surface_container_low</item>
+        <item name="colorSurfaceVariant">@color/m3_surface_variant</item>
+        <item name="colorOnSurfaceVariant">@color/m3_on_surface_variant</item>
+        <item name="colorOutline">@color/m3_outline</item>
+        <item name="colorOutlineVariant">@color/m3_outline_variant</item>
+        <item name="android:colorAccent">@color/m3_primary</item>
+        <item name="android:statusBarColor">@color/m3_status_bar</item>
+        <item name="android:navigationBarColor">@color/m3_navigation_bar</item>
+        <item name="android:windowActionModeOverlay">true</item>
+    </style>
+</resources>

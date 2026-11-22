@@ -19,6 +19,7 @@ import android.view.View;
 import android.view.ViewGroup;
 import android.widget.ListView;
 import android.widget.TextView;
+import androidx.core.content.ContextCompat;
 
 import net.micode.fileexplorer.FavoriteDatabaseHelper.FavoriteDatabaseListener;
 import net.micode.fileexplorer.FileCategoryHelper.CategoryInfo;
@@ -78,11 +79,11 @@ public class FileCategoryActivity extends Fragment implements IFileInteractionLi
         button2Category.put(R.id.category_music, FileCategory.Music);
         button2Category.put(R.id.category_video, FileCategory.Video);
         button2Category.put(R.id.category_picture, FileCategory.Picture);
-        button2Category.put(R.id.category_theme, FileCategory.Theme);
         button2Category.put(R.id.category_document, FileCategory.Doc);
         button2Category.put(R.id.category_zip, FileCategory.Zip);
         button2Category.put(R.id.category_apk, FileCategory.Apk);
         button2Category.put(R.id.category_favorite, FileCategory.Favorite);
+        button2Category.put(R.id.category_recent, FileCategory.Recent);
     }
 
     @Override
@@ -118,7 +119,8 @@ public class FileCategoryActivity extends Fragment implements IFileInteractionLi
         intentFilter.addAction(Intent.ACTION_MEDIA_MOUNTED);
         intentFilter.addAction(Intent.ACTION_MEDIA_UNMOUNTED);
         intentFilter.addDataScheme("file");
-        mActivity.registerReceiver(mScannerReceiver, intentFilter);
+        ContextCompat.registerReceiver(mActivity, mScannerReceiver, intentFilter,
+                ContextCompat.RECEIVER_NOT_EXPORTED);
     }
 
     private void setupCategoryInfo() {
@@ -127,9 +129,9 @@ public class FileCategoryActivity extends Fragment implements IFileInteractionLi
         mCategoryBar = (CategoryBar) mRootView.findViewById(R.id.category_bar);
         int[] imgs = new int[] {
                 R.drawable.category_bar_music, R.drawable.category_bar_video,
-                R.drawable.category_bar_picture, R.drawable.category_bar_theme,
-                R.drawable.category_bar_document, R.drawable.category_bar_zip,
-                R.drawable.category_bar_apk, R.drawable.category_bar_other
+                R.drawable.category_bar_picture, R.drawable.category_bar_document,
+                R.drawable.category_bar_zip, R.drawable.category_bar_apk,
+                R.drawable.category_bar_other
         };
 
         for (int i = 0; i < imgs.length; i++) {
@@ -236,6 +238,10 @@ public class FileCategoryActivity extends Fragment implements IFileInteractionLi
     View.OnClickListener onClickListener = new View.OnClickListener() {
         @Override
         public void onClick(View v) {
+            if (v.getId() == R.id.category_ftp_server) {
+                mActivity.startActivity(new android.content.Intent(mActivity, FTPServerActivity.class));
+                return;
+            }
             FileCategory f = button2Category.get(v.getId());
             if (f != null) {
                 onCategorySelected(f);
@@ -284,11 +290,20 @@ public class FileCategoryActivity extends Fragment implements IFileInteractionLi
         setupClick(R.id.category_music);
         setupClick(R.id.category_video);
         setupClick(R.id.category_picture);
-        setupClick(R.id.category_theme);
         setupClick(R.id.category_document);
         setupClick(R.id.category_zip);
         setupClick(R.id.category_apk);
         setupClick(R.id.category_favorite);
+        setupClick(R.id.category_ftp_server);
+        setupClick(R.id.category_recent);
+    }
+
+    public void refresh() {
+        if (mRootView == null) {
+            return;
+        }
+        mFavoriteList.initList();
+        updateUI();
     }
 
     @Override
@@ -443,13 +458,13 @@ public class FileCategoryActivity extends Fragment implements IFileInteractionLi
     private void copyFileInFileView(ArrayList<FileInfo> files) {
         if (files.size() == 0) return;
         mFileViewActivity.copyFile(files);
-        mActivity.getActionBar().setSelectedNavigationItem(Util.SDCARD_TAB_INDEX);
+        ((FileExplorerTabActivity) mActivity).selectTab(Util.SDCARD_TAB_INDEX);
     }
 
     private void startMoveToFileView(ArrayList<FileInfo> files) {
         if (files.size() == 0) return;
         mFileViewActivity.moveToFile(files);
-        mActivity.getActionBar().setSelectedNavigationItem(Util.SDCARD_TAB_INDEX);
+        ((FileExplorerTabActivity) mActivity).selectTab(Util.SDCARD_TAB_INDEX);
     }
 
     @Override
@@ -465,8 +480,6 @@ public class FileCategoryActivity extends Fragment implements IFileInteractionLi
                 return R.id.category_video_count;
             case Picture:
                 return R.id.category_picture_count;
-            case Theme:
-                return R.id.category_theme_count;
             case Doc:
                 return R.id.category_document_count;
             case Zip:
@@ -495,10 +508,6 @@ public class FileCategoryActivity extends Fragment implements IFileInteractionLi
             case Picture:
                 txtId = R.id.category_legend_picture;
                 resId = R.string.category_picture;
-                break;
-            case Theme:
-                txtId = R.id.category_legend_theme;
-                resId = R.string.category_theme;
                 break;
             case Doc:
                 txtId = R.id.category_legend_document;
@@ -553,7 +562,8 @@ public class FileCategoryActivity extends Fragment implements IFileInteractionLi
     }
 
     private void updateUI() {
-        boolean sdCardReady = Util.isSDCardReady();
+        boolean sdCardReady = Util.isSDCardReady()
+                && FileExplorerTabActivity.hasFileSystemAccess(mActivity);
         if (sdCardReady) {
             if (preViewPage != ViewPage.Invalid) {
                 showPage(preViewPage);
@@ -569,6 +579,18 @@ public class FileCategoryActivity extends Fragment implements IFileInteractionLi
         } else {
             preViewPage = curViewPage;
             showPage(ViewPage.NoSD);
+            TextView storageMessage = mRootView.findViewById(R.id.storage_status_message);
+            if (Util.isSDCardReady()) {
+                storageMessage.setText(R.string.storage_access_required);
+            } else {
+                storageMessage.setText(R.string.enable_sd_card);
+            }
+        }
+    }
+
+    public void onStoragePermissionChanged() {
+        if (mRootView != null) {
+            updateUI();
         }
     }
 

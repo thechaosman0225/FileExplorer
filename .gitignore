@@ -9,5 +9,6 @@ project.properties
 .classpath
 .project
 .gradle/
+.kotlin/
 **/build/
 local.properties

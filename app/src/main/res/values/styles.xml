@@ -1,5 +1,28 @@
 <?xml version="1.0" encoding="utf-8"?>
 <resources>
+    <style name="Theme.FileExplorer" parent="Theme.Material3.DayNight.NoActionBar">
+        <item name="colorPrimary">@color/m3_primary</item>
+        <item name="colorOnPrimary">@color/m3_on_primary</item>
+        <item name="colorPrimaryContainer">@color/m3_primary_container</item>
+        <item name="colorOnPrimaryContainer">@color/m3_on_primary_container</item>
+        <item name="colorSecondary">@color/m3_secondary</item>
+        <item name="colorOnSecondary">@color/m3_on_secondary</item>
+        <item name="colorTertiary">@color/m3_tertiary</item>
+        <item name="colorOnTertiary">@color/m3_on_tertiary</item>
+        <item name="colorSurface">@color/m3_surface</item>
+        <item name="colorOnSurface">@color/m3_on_surface</item>
+        <item name="colorSurfaceContainer">@color/m3_surface_container</item>
+        <item name="colorSurfaceContainerLow">@color/m3_surface_container_low</item>
+        <item name="colorSurfaceVariant">@color/m3_surface_variant</item>
+        <item name="colorOnSurfaceVariant">@color/m3_on_surface_variant</item>
+        <item name="colorOutline">@color/m3_outline</item>
+        <item name="colorOutlineVariant">@color/m3_outline_variant</item>
+        <item name="android:colorAccent">@color/m3_primary</item>
+        <item name="android:statusBarColor">@color/m3_status_bar</item>
+        <item name="android:navigationBarColor">@color/m3_navigation_bar</item>
+        <item name="android:windowActionModeOverlay">true</item>
+    </style>
+
     <style name="ShadowStyle">
         <item name="android:shadowColor">#6e6e6e</item>
         <item name="android:shadowDx">0.5</item>
@@ -65,28 +88,32 @@
     </style>
 
     <style name="CategoryButtonStyle">
-        <item name="android:layout_height">fill_parent</item>
+        <item name="android:layout_height">96dp</item>
         <item name="android:layout_width">0dip</item>
         <item name="android:layout_weight">1</item>
+        <item name="android:layout_margin">4dp</item>
         <item name="android:gravity">center</item>
         <item name="android:orientation">vertical</item>
+        <item name="android:background">@drawable/category_tile_background</item>
+        <item name="android:elevation">1dp</item>
     </style>
     <style name="CategoryButtonIconStyle">
         <item name="android:layout_height">wrap_content</item>
         <item name="android:layout_width">wrap_content</item>
         <item name="android:layout_marginBottom">3px</item>
+        <item name="android:tint">?attr/colorOnSurfaceVariant</item>
     </style>
     <style name="CategoryButtonTextStyle">
         <item name="android:layout_height">wrap_content</item>
         <item name="android:layout_width">wrap_content</item>
         <item name="android:textSize">19px</item>
-        <item name="android:textColor">#111111</item>
+        <item name="android:textColor">?attr/colorOnSurfaceVariant</item>
     </style>
     <style name="CategoryButtonCountTextStyle">
         <item name="android:layout_height">wrap_content</item>
         <item name="android:layout_width">wrap_content</item>
         <item name="android:textSize">15px</item>
-        <item name="android:textColor">#A6A6A6</item>
+        <item name="android:textColor">?attr/colorOnSurfaceVariant</item>
     </style>
 
     <style name="InformationItemTitleStyle">
@@ -101,7 +128,7 @@
         <item name="android:layout_height">wrap_content</item>
         <item name="android:layout_width">wrap_content</item>
         <item name="android:gravity">left</item>
-        <item name="android:textColor">#FFFFFF</item>
+        <item name="android:textColor">?attr/colorOnSurface</item>
         <item name="android:textSize">14dip</item>
         <item name="android:layout_marginLeft">5dip</item>
     </style>
@@ -116,29 +143,33 @@
     <style name="InformationTextStyle">
         <item name="android:layout_height">wrap_content</item>
         <item name="android:layout_width">wrap_content</item>
-        <item name="android:textColor">#222222</item>
-        <item name="android:textSize">12dip</item>
-        <item name="android:drawablePadding">5dip</item>
+        <item name="android:textColor">?attr/colorOnSurface</item>
+        <item name="android:textSize">12sp</item>
+        <item name="android:drawablePadding">4dp</item>
     </style>
     <style name="CategoryLegendStyle">
         <item name="android:layout_height">wrap_content</item>
         <item name="android:layout_width">0dip</item>
         <item name="android:layout_weight">1</item>
         <item name="android:gravity">left</item>
-        <item name="android:drawablePadding">5px</item>
-        <item name="android:textColor">#222222</item>
-        <item name="android:textSize">10dip</item>
-        <item name="android:layout_marginLeft">2dip</item>
+        <item name="android:drawablePadding">4dp</item>
+        <item name="android:textColor">?attr/colorOnSurfaceVariant</item>
+        <item name="android:textSize">10sp</item>
+        <item name="android:singleLine">true</item>
+        <item name="android:ellipsize">end</item>
+        <item name="android:layout_marginStart">2dp</item>
     </style>
     <style name="CategoryLegendStyleLand">
         <item name="android:layout_height">0dip</item>
         <item name="android:layout_width">wrap_content</item>
         <item name="android:layout_weight">1</item>
         <item name="android:gravity">left</item>
-        <item name="android:drawablePadding">5px</item>
-        <item name="android:textColor">#222222</item>
-        <item name="android:textSize">10dip</item>
-        <item name="android:layout_marginLeft">2dip</item>
+        <item name="android:drawablePadding">4dp</item>
+        <item name="android:textColor">?attr/colorOnSurfaceVariant</item>
+        <item name="android:textSize">10sp</item>
+        <item name="android:singleLine">true</item>
+        <item name="android:ellipsize">end</item>
+        <item name="android:layout_marginStart">2dp</item>
     </style>
     <style name="InformationDialog" parent="android:style/Theme.Dialog">
         <item name="android:windowNoTitle">true</item>

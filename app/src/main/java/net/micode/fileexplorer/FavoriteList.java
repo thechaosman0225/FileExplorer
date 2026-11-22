@@ -124,7 +124,7 @@ public class FavoriteList implements FavoriteDatabaseListener {
             FileExplorerTabActivity activity = (FileExplorerTabActivity) mContext;
             ((FileViewActivity) activity.getFragment(Util.SDCARD_TAB_INDEX))
                     .setPath(favorite.location);
-            activity.getActionBar().setSelectedNavigationItem(Util.SDCARD_TAB_INDEX);
+            activity.selectTab(Util.SDCARD_TAB_INDEX);
         } else {
             try {
                 IntentBuilder.viewFile(mContext, favorite.fileInfo.filePath);

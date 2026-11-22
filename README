@@ -9,7 +9,9 @@
 3. 功能建议和综合讨论，请访问MiCode,
    http://micode.net/forum-51-1.html
 
-4. 构建项目需要 JDK 17 或更高版本、Android SDK Platform 35 和 Android SDK Build-Tools 35.0.0。
+4. 构建项目需要 JDK 21、Android SDK Platform 36 和 Android SDK Build-Tools 36.0.0。
+   应用最低支持 API 21，目标 API 36；Android 11 及更高版本需要在系统设置中授予“管理所有文件”权限。
+   Java 和 Kotlin 字节码目标均为 JVM 17。
    在 Windows 上运行 gradlew.bat assembleDebug；在 macOS 或 Linux 上运行 ./gradlew assembleDebug。
    生成的 APK 位于 app/build/outputs/apk/debug/app-debug.apk。
 
@@ -26,7 +28,11 @@
 3. Regarding feature request and general discussion, please visit Micode forum,
    http://micode.net/forum-51-1.html
 
-4. To build, install JDK 17 or newer, Android SDK Platform 35, and Android SDK Build-Tools 35.0.0. Run
+4. To build, install JDK 21, Android SDK Platform 36, and Android SDK Build-Tools 36.0.0. Run
    gradlew.bat assembleDebug on Windows or ./gradlew assembleDebug on macOS/Linux.
    The APK is generated at app/build/outputs/apk/debug/app-debug.apk.
-   The app keeps its original API 14 target for legacy behavior.
+   The app supports API 21 and later, targets API 36, and compiles Java and Kotlin bytecode for
+   JVM 17. On Android 11 and later, file management requires the user to grant "All files access"
+   in system settings; removable folders can also be granted individually through the folder picker.
+   The SwiftP core source is in swiftp-core and is licensed
+   under GPL-3.0-or-later (see swiftp-core/COPYING).
